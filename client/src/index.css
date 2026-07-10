@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+:root {
+  /* Define CSS Variables directly */
+  --color-primary: #d70427;
+  --color-primary-dark: #C62828;
+  --color-background-light: #f8f5f6;
+  --color-background-dark: #230f12;
+  --color-surface: #FFFFFF;
+  --color-text: #3A3A3C;
+  --color-border: #E0E0E0;
+  --color-accent: #2962FF;
+
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+
+  --radius-card: 16px;
+  --radius-button: 9999px;
+  --radius-input: 12px;
+
+  /* Force light scheme */
+  color-scheme: light;
+}
+
+@theme {
+  /* Map Tailwind theme to these variables */
+  --color-primary: var(--color-primary);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-background-light: var(--color-background-light);
+  --color-background-dark: var(--color-background-dark);
+  --color-surface: var(--color-surface);
+  --color-text: var(--color-text);
+  --color-border: var(--color-border);
+  --color-accent: var(--color-accent);
+
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-info: var(--color-info);
+
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+
+  --radius-card: var(--radius-card);
+  --radius-button: var(--radius-button);
+  --radius-input: var(--radius-input);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--color-text);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-dark transition-colors px-6 py-2 font-medium shadow-sm hover:shadow-md active:scale-95 transform duration-100 cursor-pointer flex items-center justify-center;
+    border-radius: var(--radius-button);
+  }
+
+  .btn-secondary {
+    @apply bg-surface text-primary border border-primary hover:bg-red-50 transition-colors px-6 py-2 font-medium active:scale-95 transform duration-100 cursor-pointer flex items-center justify-center;
+    border-radius: var(--radius-button);
+  }
+
+  .btn-ghost {
+    @apply text-gray-500 hover:text-primary hover:bg-red-50 transition-colors px-4 py-2 font-medium cursor-pointer flex items-center justify-center;
+    border-radius: var(--radius-button);
+  }
+
+  .card {
+    @apply bg-surface shadow-sm border border-border p-6;
+    border-radius: var(--radius-card);
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 bg-surface border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-gray-400;
+    border-radius: var(--radius-input);
+  }
+
+  .hero-gradient {
+    @apply bg-background-light dark:bg-background-dark;
+    background-image: radial-gradient(circle at 50% 50%, rgba(215, 4, 39, 0.1) 0%, transparent 70%);
+  }
+
+  .pulse-line {
+    background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+    height: 1px;
+    width: 100%;
+    position: absolute;
+    top: 55%;
+    opacity: 0.15;
+  }
+
+  .dark .hero-gradient {
+    background-image: radial-gradient(circle at 50% 50%, rgba(215, 4, 39, 0.15) 0%, rgba(35, 15, 18, 1) 70%);
+  }
+
+  .dark .pulse-line {
+    opacity: 0.3;
+    height: 2px;
+  }
+
+  /* Custom Slim Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    /* @apply bg-background-light dark:bg-background-dark; */
+  }
+
+  ::-webkit-scrollbar-thumb {
+
+    /* @apply bg-slate-200 dark:bg-slate-800 rounded-full border-2 border-solid border-background-light dark:border-background-dark; */
+    transition: all 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-primary-dark);
+
+    /* @apply bg-primary/20 dark:bg-primary/30; */
+  }
+
+  /* Standard Scrollbar styling for other browsers */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E1 transparent;
+  }
+
+  .dark * {
+    scrollbar-color: #334155 transparent;
+  }
+}

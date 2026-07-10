@@ -1,0 +1,110 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#  BloodWeb — Root .gitignore
+#  Covers: Server (Node/Express), client (Vite/React), and workspace tooling
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─── Environment / Secrets ────────────────────────────────────────────────────
+# NEVER commit real secrets, API keys, or DB credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# ─── Build Output ─────────────────────────────────────────────────────────────
+dist/
+dist-ssr/
+build/
+out/
+.output/
+**/dist/
+**/build/
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─── Runtime / Cache ──────────────────────────────────────────────────────────
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+*.tsbuildinfo
+.nyc_output/
+coverage/
+
+# ─── Temp / OS files ──────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.bak
+*.tmp
+*.temp
+~$*
+
+# ─── IDE / Editor ─────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json.example
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+*.code-workspace
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+cypress/videos/
+cypress/screenshots/
+
+# ─── Database / Data dumps ────────────────────────────────────────────────────
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+dumps/
+
+# ─── Certificates / Keys ──────────────────────────────────────────────────────
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# ─── Package manager lock files (keep package-lock.json / yarn.lock) ──────────
+# Uncomment below ONLY if you intentionally want to skip lock files:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ─── Vite-specific ────────────────────────────────────────────────────────────
+*.local
+
+# ─── Misc ─────────────────────────────────────────────────────────────────────
+.vercel/
+.netlify/
+.firebase/
+.serverless/

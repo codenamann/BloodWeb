@@ -1,0 +1,226 @@
+
+<style>
+  .tree { font-family: var(--font-mono); font-size: 13px; line-height: 1.8; color: var(--text-primary); padding: 1rem 0; }
+  .folder { color: var(--text-accent); font-weight: 500; cursor: pointer; }
+  .folder:hover { opacity: 0.75; }
+  .file { color: var(--text-secondary); }
+  .file.highlight { color: var(--text-primary); font-weight: 500; }
+  .badge { display: inline-block; font-size: 10px; font-family: var(--font-sans); font-weight: 500; padding: 1px 6px; border-radius: 4px; margin-left: 8px; vertical-align: middle; line-height: 1.6; }
+  .badge-core    { background: var(--bg-accent);   color: var(--text-accent);   }
+  .badge-engine  { background: #EEEDFE;             color: #3C3489;              }
+  .badge-shield  { background: var(--bg-warning);  color: var(--text-warning);  }
+  .badge-db      { background: var(--bg-success);  color: var(--text-success);  }
+  @media (prefers-color-scheme: dark) {
+    .badge-engine { background: #26215C; color: #AFA9EC; }
+  }
+  .indent-1 { padding-left: 20px; }
+  .indent-2 { padding-left: 40px; }
+  .indent-3 { padding-left: 60px; }
+  .indent-4 { padding-left: 80px; }
+  .comment  { color: var(--text-muted); font-style: italic; margin-left: 6px; font-family: var(--font-sans); font-size: 11px; }
+  .section { margin: 12px 0 4px; font-family: var(--font-sans); font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .detail-panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-top: 20px; }
+  .detail-panel h3 { font-size: 14px; font-weight: 500; margin: 0 0 6px; color: var(--text-primary); }
+  .detail-panel p  { font-size: 13px; color: var(--text-secondary); margin: 0 0 10px; line-height: 1.6; }
+  .detail-panel ul { margin: 0; padding-left: 16px; }
+  .detail-panel li { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+  .detail-panel li span { color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; }
+  .close-btn { float: right; font-size: 12px; color: var(--text-muted); cursor: pointer; font-family: var(--font-sans); }
+  .close-btn:hover { color: var(--text-primary); }
+</style>
+
+<div class="tree">
+
+<div class="section">root</div>
+<div><span class="folder">bloodweb/</span></div>
+<div class="indent-1"><span class="folder">src/</span></div>
+
+<div class="section indent-1">domain engines — isolated modules, no deps on express or mongoose</div>
+<div class="indent-2"><span class="folder" onclick="show('engines')">engines/</span> <span class="badge badge-engine">isolated</span></div>
+<div class="indent-3"><span class="file highlight">compatibilityEngine.js</span><span class="comment">owns ALL blood group logic</span></div>
+<div class="indent-3"><span class="file highlight">matchingEngine.js</span><span class="comment">finds available donors</span></div>
+<div class="indent-3"><span class="file highlight">fulfillmentEngine.js</span><span class="comment">derives request fulfillment state</span></div>
+<div class="indent-3"><span class="file">requestPipeline.js</span><span class="comment">orchestrates the 3 engines on request creation</span></div>
+
+<div class="section indent-1">data models — mongoose schemas + transition logic</div>
+<div class="indent-2"><span class="folder" onclick="show('models')">models/</span> <span class="badge badge-db">db</span></div>
+<div class="indent-3"><span class="file">User.model.js</span></div>
+<div class="indent-3"><span class="file">BloodRequest.model.js</span></div>
+<div class="indent-3"><span class="file">VolunteerResponse.model.js</span></div>
+<div class="indent-3"><span class="file">CoordinationRoom.model.js</span></div>
+<div class="indent-3"><span class="file">Message.model.js</span></div>
+<div class="indent-3"><span class="file">Notification.model.js</span></div>
+<div class="indent-3"><span class="file">Hospital.model.js</span></div>
+<div class="indent-3"><span class="file highlight">transitions/</span></div>
+<div class="indent-4"><span class="file">requestStatus.transitions.js</span><span class="comment">controlled status transition function</span></div>
+<div class="indent-4"><span class="file">volunteerStatus.transitions.js</span></div>
+
+<div class="section indent-1">business logic — one service per aggregate root</div>
+<div class="indent-2"><span class="folder" onclick="show('services')">services/</span> <span class="badge badge-core">core</span></div>
+<div class="indent-3"><span class="file">request.service.js</span></div>
+<div class="indent-3"><span class="file">volunteer.service.js</span></div>
+<div class="indent-3"><span class="file">room.service.js</span></div>
+<div class="indent-3"><span class="file">message.service.js</span></div>
+<div class="indent-3"><span class="file">user.service.js</span></div>
+<div class="indent-3"><span class="file">hospital.service.js</span><span class="comment">queries OSM Overpass + local cache</span></div>
+<div class="indent-3"><span class="file highlight">notification.service.js</span><span class="comment">abstracts over channels — never call sendEmail directly</span></div>
+
+<div class="section indent-1">notification channels — swappable, plugged into notification.service</div>
+<div class="indent-2"><span class="folder" onclick="show('channels')">channels/</span></div>
+<div class="indent-3"><span class="file">email.channel.js</span></div>
+<div class="indent-3"><span class="file">push.channel.js</span><span class="comment">V2</span></div>
+<div class="indent-3"><span class="file">sms.channel.js</span><span class="comment">V2</span></div>
+
+<div class="section indent-1">http layer — thin controllers, no business logic</div>
+<div class="indent-2"><span class="folder" onclick="show('api')">api/</span></div>
+<div class="indent-3"><span class="folder">routes/</span></div>
+<div class="indent-4"><span class="file">auth.routes.js</span></div>
+<div class="indent-4"><span class="file">request.routes.js</span></div>
+<div class="indent-4"><span class="file">volunteer.routes.js</span></div>
+<div class="indent-4"><span class="file">room.routes.js</span></div>
+<div class="indent-4"><span class="file">user.routes.js</span></div>
+<div class="indent-4"><span class="file">hospital.routes.js</span></div>
+<div class="indent-3"><span class="folder">controllers/</span></div>
+<div class="indent-4"><span class="file">auth.controller.js</span></div>
+<div class="indent-4"><span class="file">request.controller.js</span></div>
+<div class="indent-4"><span class="file">volunteer.controller.js</span></div>
+<div class="indent-4"><span class="file">room.controller.js</span></div>
+<div class="indent-4"><span class="file">user.controller.js</span></div>
+<div class="indent-4"><span class="file">hospital.controller.js</span></div>
+
+<div class="section indent-1">cross-cutting concerns</div>
+<div class="indent-2"><span class="folder" onclick="show('middleware')">middleware/</span> <span class="badge badge-shield">security</span></div>
+<div class="indent-3"><span class="file">authenticate.js</span><span class="comment">JWT verify</span></div>
+<div class="indent-3"><span class="file">requireFields.js</span><span class="comment">contextual field guards</span></div>
+<div class="indent-3"><span class="file">sanitize.js</span><span class="comment">strips sensitive fields at serialization</span></div>
+<div class="indent-3"><span class="file">errorHandler.js</span><span class="comment">central error boundary</span></div>
+<div class="indent-3"><span class="file">rateLimiter.js</span></div>
+
+<div class="indent-2"><span class="folder" onclick="show('validators')">validators/</span></div>
+<div class="indent-3"><span class="file">request.validator.js</span></div>
+<div class="indent-3"><span class="file">volunteer.validator.js</span></div>
+<div class="indent-3"><span class="file">user.validator.js</span></div>
+
+<div class="section indent-1">shared utilities</div>
+<div class="indent-2"><span class="folder">utils/</span></div>
+<div class="indent-3"><span class="file">AppError.js</span><span class="comment">typed error class</span></div>
+<div class="indent-3"><span class="file">asyncHandler.js</span><span class="comment">wraps async controllers</span></div>
+<div class="indent-3"><span class="file">logger.js</span></div>
+
+<div class="section indent-1">infrastructure</div>
+<div class="indent-2"><span class="folder">config/</span></div>
+<div class="indent-3"><span class="file">db.js</span></div>
+<div class="indent-3"><span class="file">env.js</span><span class="comment">validated env, not raw process.env</span></div>
+<div class="indent-3"><span class="file">constants.js</span><span class="comment">enums, blood groups, status lists</span></div>
+
+<div class="indent-2"><span class="folder">sockets/</span><span class="comment">future: real-time room events</span></div>
+<div class="indent-3"><span class="file">room.socket.js</span></div>
+<div class="indent-3"><span class="file">socketRegistry.js</span></div>
+
+<div class="section indent-1">entry points</div>
+<div class="indent-2"><span class="file highlight">app.js</span><span class="comment">express setup, middleware, routes</span></div>
+<div class="indent-2"><span class="file highlight">server.js</span><span class="comment">http.createServer, port binding — nothing else</span></div>
+
+<div class="section">tests</div>
+<div class="indent-1"><span class="folder">tests/</span></div>
+<div class="indent-2"><span class="folder">unit/</span></div>
+<div class="indent-3"><span class="file">engines/</span><span class="comment">compatibilityEngine, matchingEngine, fulfillmentEngine</span></div>
+<div class="indent-3"><span class="file">transitions/</span><span class="comment">status transition rules</span></div>
+<div class="indent-2"><span class="folder">integration/</span></div>
+<div class="indent-3"><span class="file">requests/</span><span class="comment">full pipeline end-to-end</span></div>
+<div class="indent-3"><span class="file">volunteers/</span></div>
+
+<div class="section">root config</div>
+<div><span class="file">.env.example</span></div>
+<div><span class="file">.gitignore</span></div>
+<div><span class="file">package.json</span></div>
+
+</div>
+
+<div id="detail" class="detail-panel" style="display:none"></div>
+
+<script>
+const details = {
+  engines: {
+    title: 'engines/ — why isolated?',
+    body: 'The architecture mandates that CompatibilityEngine, MatchingEngine, and FulfillmentEngine are independent modules with zero knowledge of Express, Mongoose, or each other. This makes them trivially unit-testable, swappable, and impossible to accidentally couple to HTTP logic.',
+    items: [
+      ['compatibilityEngine.js', 'Pure function. Input: patientBloodGroup → Output: string[]. No DB calls, no imports from models.'],
+      ['matchingEngine.js', 'Calls CompatibilityEngine for eligible groups, then queries User model. Returns ranked donor list.'],
+      ['fulfillmentEngine.js', 'Counts ACCEPTED VolunteerResponses vs unitsNeeded. Returns derived status. Never writes to DB.'],
+      ['requestPipeline.js', 'Orchestrator only. Calls the three engines in sequence after request creation. No business logic of its own.'],
+    ]
+  },
+  models: {
+    title: 'models/ — schema + transitions together',
+    body: 'Mongoose schemas live here. The transitions/ subfolder holds the controlled status transition functions mentioned in the architecture — status never changes via a raw DB write from a controller.',
+    items: [
+      ['BloodRequest.model.js', 'Schema + status enum. Does NOT embed volunteers, messages, or room.'],
+      ['transitions/requestStatus.transitions.js', 'validateTransition(from, to). Throws if illegal. Used by request.service.js only.'],
+      ['transitions/volunteerStatus.transitions.js', 'Same pattern for PENDING → ACCEPTED → BACKUP → WITHDRAWN.'],
+    ]
+  },
+  services: {
+    title: 'services/ — all business logic lives here',
+    body: 'Controllers call services. Services call models and engines. Services never know about req/res. This layer is where the real work happens and is independently testable.',
+    items: [
+      ['request.service.js', 'createRequest() triggers requestPipeline. updateStatus() goes through transition validator.'],
+      ['notification.service.js', 'notify(userId, type, payload). Routes to email/push/SMS internally. Business logic never imports channels directly.'],
+      ['hospital.service.js', 'searchHospitals() checks local cache first, falls back to Overpass API. Handles OSM deduplication.'],
+    ]
+  },
+  api: {
+    title: 'api/ — thin HTTP layer',
+    body: 'Controllers do one thing: translate HTTP → service call → HTTP response. No business logic, no DB calls, no engine calls. Routes register controllers and apply middleware.',
+    items: [
+      ['controllers/', 'Each method: validate input → call service → return response. 10-20 lines per method max.'],
+      ['routes/', 'Route registration + middleware application only. authenticate, requireFields, sanitize applied here.'],
+    ]
+  },
+  middleware: {
+    title: 'middleware/ — cross-cutting concerns',
+    body: 'These run across every request. sanitize.js is critical — phone numbers and private fields must be stripped at the serialization layer per the privacy architecture.',
+    items: [
+      ['sanitize.js', 'Removes phone, passwordHash, and private fields from all outbound API responses.'],
+      ['requireFields.js', 'Contextual guards — checks bloodGroup + location before volunteering, not on registration.'],
+      ['errorHandler.js', 'Central error boundary. All AppError instances flow here. Formats error responses consistently.'],
+      ['authenticate.js', 'JWT verification middleware. Attaches req.user. Never touches business logic.'],
+    ]
+  },
+  validators: {
+    title: 'validators/ — input validation, separate from business rules',
+    body: 'Validators check structure and types. Business rules (is this blood group compatible?) live in engines. Validation (is this a valid blood group string?) lives here.',
+    items: [
+      ['request.validator.js', 'patientBloodGroup is a valid enum, unitsNeeded ≥ 1, hospitalId exists.'],
+      ['volunteer.validator.js', 'Donor has bloodGroup + location set. Checks User model state before submitting response.'],
+    ]
+  },
+  channels: {
+    title: 'channels/ — notification delivery',
+    body: 'Each channel is a module that implements a shared interface: send(userId, payload). notification.service.js picks the right channel at runtime. Adding SMS in V2 means writing sms.channel.js and registering it — nothing else changes.',
+    items: [
+      ['email.channel.js', 'V1. Wraps a mailer (Nodemailer or similar). Maps payload to email template.'],
+      ['push.channel.js', 'V2. Web Push / FCM. Stub file now — interface defined, implementation deferred.'],
+      ['sms.channel.js', 'V2. Twilio or similar. Same stub pattern.'],
+    ]
+  },
+};
+
+function show(key) {
+  const d = details[key];
+  if (!d) return;
+  const panel = document.getElementById('detail');
+  const items = d.items.map(([name, desc]) =>
+    `<li><span>${name}</span> — ${desc}</li>`
+  ).join('');
+  panel.innerHTML = `
+    <span class="close-btn" onclick="document.getElementById('detail').style.display='none'">✕ close</span>
+    <h3>${d.title}</h3>
+    <p>${d.body}</p>
+    <ul>${items}</ul>
+  `;
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>
