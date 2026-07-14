@@ -55,14 +55,9 @@ export async function getMatchingDonors(patientBloodGroup, hospitalId, requestor
     const eligibleBloodGroups = getCompatibleDonorGroups(patientBloodGroup);
 
     const hospital = await Hospital.findById(hospitalId);
-    if (!hospital || !hospital.coordinates) {
-        if (!hospital) {
-            throw new Error('Hospital not found');
-        } else {
-            throw new Error('Hospital has no coordinates');
+    if (!hospital) throw new Error('Hospital not found');
+    if (!hospital.coordinates) throw new Error('Hospital has no coordinates');
 
-        }
-    }
     const eligibleDonors = await User.find(
         {
             bloodGroup: { $in: eligibleBloodGroups },
