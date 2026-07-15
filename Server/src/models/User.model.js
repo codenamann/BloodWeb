@@ -98,6 +98,25 @@ const userSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Email verified status
+    emailVerified: {
+      type: Boolean,
+      default: false,
+      required: true
+    },
+
+    otpHash: {
+      type: String,
+      default: null,
+      select: false
+    },
+
+    otpExpiresAt: {
+      type: Date,
+      default: null,
+      select: false
+    },
+
     // ── Account state ─────────────────────────────────────────────────────────
     accountStatus: {
       type: String,
@@ -121,6 +140,7 @@ const userSchema = new mongoose.Schema(
 // participation are set.
 userSchema.virtual('profileComplete').get(function () {
   return !!(
+    this.phone &&
     this.bloodGroup &&
     this.location &&
     this.location.city &&
