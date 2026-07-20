@@ -12,6 +12,12 @@ const coordinationRoomSchema = new mongoose.Schema(
             required: [true, "Blood request ID is required"],
         },
 
+        adminId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: [true, "Admin ID is required"],
+        },
+
         // Status
         status: {
             type: String,
@@ -35,7 +41,7 @@ const coordinationRoomSchema = new mongoose.Schema(
         // Cooldown for sending messages to prevent spam. In seconds.
         messageCooldownSeconds: {
             type: Number,
-            default: null,
+            default: 3,
             min: [1, "Message cooldown must be at least 1 second"],
         },
 

@@ -6,6 +6,7 @@ import { validateVolunteerTransition } from "../models/transitions/volunteerStat
 import User from "../models/User.model.js";
 import VolunteerResponse from "../models/VolunteerResponse.model.js";
 import { transitionStatus } from "./request.service.js";
+import { createRoom } from "./room.service.js";
 
 export async function createVolunteerResponse(requestId, donorId, locationAtResponse) {
     const request = await BloodRequest.findOne(
@@ -44,7 +45,7 @@ export async function createVolunteerResponse(requestId, donorId, locationAtResp
 
     const count = await VolunteerResponse.countDocuments({ requestId });
     if (count === 1) {
-        // TODO: createCoordinationRoom()
+        createRoom(requestId)
     }
 
     return donor;
