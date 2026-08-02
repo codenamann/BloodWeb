@@ -27,18 +27,30 @@ export async function getRoomParticipants(requestId) {
             requestId,
             status: { $ne: 'WITHDRAWN' }
         }
-    ).populate('donorId', 'name bloodGroup');
+    ).populate('donorId', 'name bloodGroup').lean();
 
-    const request = await BloodRequest.findOne({ _id: requestId }, { createdBy: 1 }).lean();
+    const request = await BloodRequest.findOne(
+        { _id: requestId },
+        { createdBy: 1 }
+    ).populate('createdBy', 'name').lean();
+    if (!request) throw new Error('Blood Request not found');
+
     return {
-        requesterId: request.createdBy,
+        requester: request.createdBy,
         volunteers
     };
 }
 
 export async function pinMessage(roomId, messageId, requesterId) {
-    const room = await CoordinationRoom.findOne({ _id: roomId, adminId: requesterId });
-    if (!room) throw new Error('Room not found or permission denied');
+    const room = await CoordinationRoom.findOne(
+        { _id: roomId },
+        {
+            pinnedMessageId: 1,
+            adminId: 1
+        }
+    );
+    if (!room) throw new Error('Room not found ');
+    if (!room.adminId.equals(requesterId)) throw new Error('Permission denied');
 
     if (! await Message.exists({ _id: messageId, roomId })) throw new Error('Message not found');
     room.pinnedMessageId = messageId;
@@ -46,8 +58,15 @@ export async function pinMessage(roomId, messageId, requesterId) {
 }
 
 export async function toggleCooldown(roomId, requesterId) {
-    const room = await CoordinationRoom.findOne({ _id: roomId, adminId: requesterId }, { cooldownEnabled: 1 })
-    if (!room) throw new Error('Room not found or permission denied');
+    const room = await CoordinationRoom.findOne(
+        { _id: roomId, },
+        {
+            cooldownEnabled: 1,
+            adminId: 1
+        }
+    )
+    if (!room) throw new Error('Room not found');
+    if (!room.adminId.equals(requesterId)) throw new Error('Permission denied');
 
     room.cooldownEnabled = !room.cooldownEnabled;
     return room.save();
@@ -55,12 +74,14 @@ export async function toggleCooldown(roomId, requesterId) {
 
 export async function updateCooldown(roomId, requesterId, messageCooldownSeconds) {
     const room = await CoordinationRoom.findOne(
+        { _id: roomId, },
         {
-            _id: roomId,
-            adminId: requesterId
-        }, { messageCooldownSeconds: 1 }
+            messageCooldownSeconds: 1,
+            adminId: 1
+        }
     )
-    if (!room) throw new Error('Room not found or permission denied');
+    if (!room) throw new Error('Room not found');
+    if (!room.adminId.equals(requesterId)) throw new Error('Permission denied');
 
     room.messageCooldownSeconds = messageCooldownSeconds;
     return room.save();
@@ -68,16 +89,15 @@ export async function updateCooldown(roomId, requesterId, messageCooldownSeconds
 
 export async function closeRoom(roomId, requesterId) {
     const room = await CoordinationRoom.findOne(
-        {
-            _id: roomId,
-            adminId: requesterId
-        },
+        { _id: roomId },
         {
             status: 1,
-            closedAt: 1
+            closedAt: 1,
+            adminId: 1
         }
     );
-    if (!room) throw new Error('Room not found or permission denied');
+    if (!room) throw new Error('Room not found');
+    if (!room.adminId.equals(requesterId)) throw new Error('Permission denied');
 
     room.status = 'CLOSED';
     room.closedAt = new Date();

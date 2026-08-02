@@ -8,7 +8,7 @@ export async function requestPipeline(request) {
     const { patientBloodGroup, hospitalId, createdBy } = request;
     const matchingDonors = await getMatchingDonors(patientBloodGroup, hospitalId, createdBy);
 
-    // TODO: notifyDonors(matchingDonors);
+    // TODO: notifyDonors(matchingDonors, request);
 
     await BloodRequest.updateOne(
         { _id: request._id },
