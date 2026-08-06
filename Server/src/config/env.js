@@ -50,6 +50,10 @@ const env = {
     isDevelopment,
     isTest,
 
+    app: {
+        frontendUrl: required('FRONTEND_URL'),
+    },
+
     server: {
         port: optionalInt('PORT', 5000),
     },
@@ -60,7 +64,7 @@ const env = {
 
     auth: {
         jwtSecret: required('JWT_SECRET'),
-        jwtExpiresIn: optionalInt('JWT_EXPIRES_IN', '7d'), // seconds
+        jwtExpiresIn: optional('JWT_EXPIRES_IN', '7d'), // seconds
         bcryptSaltRounds: optionalInt('BCRYPT_SALT_ROUNDS', 12),
     },
 

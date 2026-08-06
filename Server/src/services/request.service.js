@@ -12,10 +12,14 @@ export async function createRequest(data, createdBy) {
         neededBy: data.neededBy,
         hospitalDocument: data.hospitalDocument,
         createdBy,
-    });
+    })
+
+    await request
+        .populate('createdBy', 'name email')
+        .populate('hospitalId', 'name');
 
     requestPipeline(request).catch((err) => {
-        logger.error(`Pipeline failed for request: ${request._id}: ${err.message}`);
+        logger.error(`Pipeline failed for request: ${request._id}: ${err}`);
     });
 
     return request;
