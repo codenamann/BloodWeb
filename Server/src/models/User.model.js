@@ -171,9 +171,6 @@ userSchema.index({ bloodGroup: 1, 'location.city': 1, availability: 1, accountSt
 // admin lookup by account status.
 userSchema.index({ accountStatus: 1 });
 
-// unique index on email
-userSchema.index({ email: 1 }, { unique: true });
-
 // ─── Pre-save hooks ───────────────────────────────────────────────────────────
 
 // Hash password before saving. Only runs when passwordHash is modified.

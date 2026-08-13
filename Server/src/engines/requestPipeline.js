@@ -1,5 +1,6 @@
 import BloodRequest from "../models/BloodRequest.model.js";
 import { validateRequestTransition } from "../models/transitions/requestStatus.transitions.js";
+import { notifyDonors } from "../services/notification.service.js";
 import { getMatchingDonors } from "./matchingEngine.js";
 
 export async function requestPipeline(request) {
@@ -8,7 +9,7 @@ export async function requestPipeline(request) {
     const { patientBloodGroup, hospitalId, createdBy } = request;
     const matchingDonors = await getMatchingDonors(patientBloodGroup, hospitalId, createdBy);
 
-    // TODO: notifyDonors(matchingDonors, request);
+    await notifyDonors(matchingDonors, request);
 
     await BloodRequest.updateOne(
         { _id: request._id },

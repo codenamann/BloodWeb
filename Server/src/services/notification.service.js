@@ -1,5 +1,6 @@
 import env from "../config/env.js";
 import Notification from "../models/Notification.model.js"
+import { sendEmail } from "../utils/email.js";
 
 const FRONTEND_URL = env.app.frontendUrl;
 
@@ -29,7 +30,7 @@ export async function sendNotification(notification, emailOptions) {
     const createdNotification = await Notification.create(notification);
 
     if (createdNotification.channel !== 'EMAIL') throw new Error('Only EMAIL channel is supported for now');
-    // await sendEmail(emailOptions);
+    await sendEmail(emailOptions);
 
     createdNotification.delivered = true;
     await createdNotification.save();
