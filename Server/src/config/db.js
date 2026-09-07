@@ -2,7 +2,11 @@ import mongoose from "mongoose";
 import env from "./env.js";
 import logger from "../utils/logger.js";
 
+let retryTimer;
+
 export async function connectDB() {
+    const isConnected = mongoose.connection.readyState === 1;
+
     if (isConnected) {
         logger.warn("connectDB is called but connection already exists - skipping");
         return;
@@ -17,6 +21,8 @@ export async function connectDB() {
         logger.info(`MongoDB connected: ${connection.connection.host}`);
     } catch (error) {
         logger.error(`MongoDB connection failed: ${error.message}`);
+        logger.warn(`MongoDB unavailable. Retrying connection in 5 seconds...`);
+        retryTimer = setTimeout(connectDB, 5000);
     }
 }
 
@@ -30,7 +36,12 @@ export function getConnectionStatus() {
 
 // Graceful shutdown - called by server.js on SIGTERM/SIGINT
 export async function disconnectDB() {
-    if (!(mongoose.connection.readyState === 1)) return;
+    if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+    }
+    if (mongoose.connection.readyState !== 1) return;
+
     await mongoose.connection.close();
     logger.info("MongoDB connection closed");
 }

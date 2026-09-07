@@ -1,4 +1,4 @@
-import env from "../config/env";
+import env from "../config/env.js";
 import { rateLimit } from 'express-rate-limit';
 
 export default function rateLimiter({ windowMs = env.rateLimit.windowMs, limit = env.rateLimit.max } = {}) {

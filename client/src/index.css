@@ -1,156 +1,336 @@
 @import "tailwindcss";
 
 :root {
-  /* Define CSS Variables directly */
-  --color-primary: #d70427;
-  --color-primary-dark: #C62828;
-  --color-background-light: #f8f5f6;
-  --color-background-dark: #230f12;
-  --color-surface: #FFFFFF;
-  --color-text: #3A3A3C;
-  --color-border: #E0E0E0;
-  --color-accent: #2962FF;
+  /* Warm Clay Palette */
+  --clay-bg-canvas: #f6f1eb;
+  --clay-bg-canvas-subtle: #eee6dc;
+  --clay-surface: #fbf8f4;
+  --clay-surface-card: #fdfbf9;
+  --clay-surface-inset: #ede5db;
+  
+  /* Crimson Brand Accent */
+  --clay-crimson: #d93829;
+  --clay-crimson-dark: #b82518;
+  --clay-crimson-light: #fbeae8;
+  --clay-crimson-gradient: linear-gradient(145deg, #ea4233, #c5291c);
+  
+  /* Charcoal & Slate Typography */
+  --clay-charcoal: #1c1d22;
+  --clay-charcoal-muted: #575965;
+  --clay-charcoal-subtle: #8a8d9b;
+  
+  /* Status Colors */
+  --clay-green: #22c55e;
+  --clay-green-gradient: linear-gradient(145deg, #34d399, #10b981);
+  --clay-orange: #f97316;
+  
+  /* Fonts */
+  --font-sans: "Plus Jakarta Sans", "Outfit", system-ui, -apple-system, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Outfit", sans-serif;
 
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
-  --color-info: #3B82F6;
-
-  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
-
-  --radius-card: 16px;
-  --radius-button: 9999px;
-  --radius-input: 12px;
-
-  /* Force light scheme */
   color-scheme: light;
-}
-
-@theme {
-  /* Map Tailwind theme to these variables */
-  --color-primary: var(--color-primary);
-  --color-primary-dark: var(--color-primary-dark);
-  --color-background-light: var(--color-background-light);
-  --color-background-dark: var(--color-background-dark);
-  --color-surface: var(--color-surface);
-  --color-text: var(--color-text);
-  --color-border: var(--color-border);
-  --color-accent: var(--color-accent);
-
-  --color-success: var(--color-success);
-  --color-warning: var(--color-warning);
-  --color-error: var(--color-error);
-  --color-info: var(--color-info);
-
-  --font-sans: var(--font-sans);
-  --font-display: var(--font-display);
-
-  --radius-card: var(--radius-card);
-  --radius-button: var(--radius-button);
-  --radius-input: var(--radius-input);
 }
 
 @layer base {
   body {
-    background-color: var(--color-background);
-    color: var(--color-text);
+    background-color: var(--clay-bg-canvas);
+    color: var(--clay-charcoal);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     margin: 0;
     min-height: 100vh;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    color: var(--color-text);
-    font-weight: 700;
-    letter-spacing: -0.025em;
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--clay-charcoal);
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.03em;
   }
 }
 
-@layer components {
-  .btn-primary {
-    @apply bg-primary text-white hover:bg-primary-dark transition-colors px-6 py-2 font-medium shadow-sm hover:shadow-md active:scale-95 transform duration-100 cursor-pointer flex items-center justify-center;
-    border-radius: var(--radius-button);
-  }
+/* Claymorphic Utility Classes */
 
-  .btn-secondary {
-    @apply bg-surface text-primary border border-primary hover:bg-red-50 transition-colors px-6 py-2 font-medium active:scale-95 transform duration-100 cursor-pointer flex items-center justify-center;
-    border-radius: var(--radius-button);
-  }
+/* 1. Main Tactile Card */
+.clay-card {
+  background: linear-gradient(145deg, #f2f2f2, #f6f0e7);
+  box-shadow: 
+    0 4px 5px -3px rgba(80, 60, 45, 0.2),
+    0 3px 8px -1px rgba(80, 60, 45, 0.05),
+    inset 1px 1px 2px rgba(255, 255, 255, 1),
+    inset -1px -1px 4px rgba(175, 155, 140, 0.2);
+  border-radius: 28px;
+}
 
-  .btn-ghost {
-    @apply text-gray-500 hover:text-primary hover:bg-red-50 transition-colors px-4 py-2 font-medium cursor-pointer flex items-center justify-center;
-    border-radius: var(--radius-button);
-  }
+.clay-card-flat {
+  background: linear-gradient(145deg, #f2f2f2, #f7f2eb);
+  box-shadow: 
+    0 4px 5px -3px rgba(80, 60, 45, 0.2),
+    0 3px 8px -3px rgba(80, 60, 45, 0.05),
+    inset 1.5px 1.5px 2px rgba(255, 255, 255, 1),
+    inset -2px -2px 4px rgba(175, 155, 140, 0.2);
+  border-radius: 24px;
+}
 
-  .card {
-    @apply bg-surface shadow-sm border border-border p-6;
-    border-radius: var(--radius-card);
-  }
+.clay-card-elevated {
+  background: linear-gradient(145deg, #f2f2f2, #f6f0e8);
+  box-shadow: 
+    0 22px 45px -8px rgba(90, 65, 50, 0.13),
+    0 8px 20px -3px rgba(90, 65, 50, 0.07),
+    inset 2px 2.5px 5px rgba(255, 255, 255, 1),
+    inset -2px -2.5px 6px rgba(180, 160, 145, 0.25);
+  border-radius: 32px;
+}
 
-  .input-field {
-    @apply w-full px-4 py-3 bg-surface border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-gray-400;
-    border-radius: var(--radius-input);
-  }
+/* 2. Tactile Clay Buttons */
+.clay-btn-crimson {
+  background: linear-gradient(145deg, #eb4535, #c3271b);
+  box-shadow: 
+    0 4px 6px -3px rgba(200, 45, 30, 0.38),
+    0 4px 10px -2px rgba(200, 45, 30, 0.25),
+    inset 1px 2px 3px rgba(255, 255, 255, 0.42),
+    inset -1px -2px 4px rgba(110, 12, 6, 0.45);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 9999px;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+}
 
-  .hero-gradient {
-    @apply bg-background-light dark:bg-background-dark;
-    background-image: radial-gradient(circle at 50% 50%, rgba(215, 4, 39, 0.1) 0%, transparent 70%);
-  }
+.clay-btn-cream {
+  background: linear-gradient(145deg, #f1f1f1, #f2eae0);
+  box-shadow:
+    0 4px 5px -3px rgba(80, 60, 45, 0.4),
+    0 3px 8px -1px rgba(80, 60, 45, 0.1),
+    inset 2px 2px 3px rgba(255, 255, 255, 1),
+    inset -1.5px -2px 4px rgba(148, 131, 118, 0.5);
+  color: var(--clay-charcoal);
+  font-weight: 700;
+  border-radius: 9999px;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
 
-  .pulse-line {
-    background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
-    height: 1px;
-    width: 100%;
-    position: absolute;
-    top: 55%;
-    opacity: 0.15;
-  }
+.clay-btn-crimson:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 8px 16px -3px rgba(200, 45, 30, 0.45),
+    0 4px 8px -2px rgba(200, 45, 30, 0.3),
+    inset 1px 2px 4px rgba(255, 255, 255, 0.5),
+    inset -1px -2px 4px rgba(110, 12, 6, 0.5);
+}
 
-  .dark .hero-gradient {
-    background-image: radial-gradient(circle at 50% 50%, rgba(215, 4, 39, 0.15) 0%, rgba(35, 15, 18, 1) 70%);
-  }
+.clay-btn-crimson:active {
+  transform: translateY(1px);
+  box-shadow: 
+    0 6px 14px -2px rgba(200, 45, 30, 0.3),
+    inset 1px 3px 5px rgba(100, 10, 5, 0.5),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.2);
+}
 
-  .dark .pulse-line {
+.clay-btn-cream:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 8px 16px -3px rgba(80, 60, 45, 0.13),
+    0 4px 8px -2px rgba(80, 60, 45, 0.07),
+    inset 2px 2px 4px rgba(255, 255, 255, 1),
+    inset -2px -2px 2px rgba(175, 155, 140, 0.3);
+}
+
+.clay-btn-cream:active {
+  transform: translateY(1px);
+  box-shadow: 
+    0 4px 10px -2px rgba(80, 60, 45, 0.08),
+    inset 1.5px 2.5px 4px rgba(160, 140, 125, 0.3),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* 3. Inset Pill Badges */
+.clay-inset-pill {
+  background: #f5f2ee;
+  box-shadow: 
+    0 4px 5px -3px rgba(80, 60, 45, 0.2),
+    0 3px 8px -1px rgba(80, 60, 45, 0.05),
+    inset 1px 1px 2px rgba(255, 255, 255, 1),
+    inset -1px -1px 4px rgba(175, 155, 140, 0.2);
+  border-radius: 9999px;
+}
+
+.clay-pill-subtle {
+  background: linear-gradient(145deg, #faf7f2, #ece4d8);
+  box-shadow: 
+    0 4px 10px rgba(80, 60, 45, 0.06),
+    inset 1px 1px 2px rgba(255, 255, 255, 1),
+    inset -1px -1px 2px rgba(160, 140, 125, 0.2);
+  border-radius: 9999px;
+}
+
+/* 4. Clay Nodes (for avatar circles) */
+.clay-node {
+  background: linear-gradient(145deg, #ffffff, #ede5da);
+  box-shadow: 
+    0 4px 5px -3px rgba(80, 60, 45, 0.2),
+    0 3px 8px -3px rgba(80, 60, 45, 0.05),
+    inset 1.5px 1.5px 2px rgba(255, 255, 255, 1),
+    inset -2px -2px 4px rgba(175, 155, 140, 0.2);
+  border: 4px solid #fcfbfa;
+  border-radius: 9999px;
+  position: relative;
+}
+
+/* 5. Concentric Ripple Pedestal */
+.clay-pedestal-outer {
+  background: linear-gradient(145deg, #f5efe7, #dfd7cb);
+  box-shadow: 
+    0 24px 50px -10px rgba(70, 50, 35, 0.16),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.9),
+    inset -3px -3px 8px rgba(140, 120, 105, 0.25);
+  border-radius: 9999px;
+}
+
+.clay-pedestal-mid {
+  background: linear-gradient(145deg, #faf6f0, #e6ded1);
+  box-shadow: 
+    0 14px 28px -4px rgba(70, 50, 35, 0.12),
+    inset 2.5px 2.5px 5px rgba(255, 255, 255, 1),
+    inset -2.5px -2.5px 6px rgba(150, 130, 115, 0.22);
+  border-radius: 9999px;
+}
+
+.clay-pedestal-inner {
+  background: linear-gradient(145deg, #ffffff, #ece4d7);
+  box-shadow: 
+    0 10px 20px -3px rgba(70, 50, 35, 0.1),
+    inset 2px 2px 4px rgba(255, 255, 255, 1),
+    inset -2px -2px 5px rgba(160, 140, 125, 0.2);
+  border-radius: 9999px;
+}
+
+/* 6. Clay Spheres */
+.clay-sphere {
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #f4ede3 50%, #d8cec0 100%);
+  box-shadow: 
+    0 10px 20px -3px rgba(70, 50, 35, 0.18),
+    0 3px 6px -1px rgba(70, 50, 35, 0.1),
+    inset -2px -3px 5px rgba(130, 110, 95, 0.3),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.9);
+}
+
+.clay-sphere-crimson {
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, #ff7366 0%, #d93829 55%, #9b190e 100%);
+  box-shadow: 
+    0 8px 18px -2px rgba(190, 40, 25, 0.4),
+    inset -2px -3px 4px rgba(80, 10, 5, 0.5),
+    inset 2px 2px 3px rgba(255, 255, 255, 0.6);
+}
+
+/* 7. Red Checkmark & Status Badges */
+.clay-check-badge {
+  background: linear-gradient(145deg, #ea4434, #be2619);
+  box-shadow: 
+    0 4px 10px rgba(190, 35, 20, 0.35),
+    inset 1px 1.5px 2px rgba(255, 255, 255, 0.6),
+    inset -1px -1.5px 2px rgba(90, 10, 5, 0.4);
+  border-radius: 9999px;
+}
+
+.clay-check-green {
+  background: linear-gradient(145deg, #34d399, #10b981);
+  box-shadow: 
+    0 4px 10px rgba(16, 185, 129, 0.35),
+    inset 1px 1.5px 2px rgba(255, 255, 255, 0.6),
+    inset -1px -1.5px 2px rgba(6, 78, 59, 0.4);
+  border-radius: 9999px;
+}
+
+/* 8. Animations */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.5deg);
+  }
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(8px) rotate(-0.5deg);
+  }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
     opacity: 0.3;
-    height: 2px;
   }
-
-  /* Custom Slim Scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
   }
+}
 
-  ::-webkit-scrollbar-track {
-    /* @apply bg-background-light dark:bg-background-dark; */
-  }
+.animate-float-slow {
+  animation: float-slow 5s ease-in-out infinite;
+}
 
-  ::-webkit-scrollbar-thumb {
+.animate-float-reverse {
+  animation: float-reverse 6s ease-in-out infinite;
+}
 
-    /* @apply bg-slate-200 dark:bg-slate-800 rounded-full border-2 border-solid border-background-light dark:border-background-dark; */
-    transition: all 0.2s ease;
-  }
+.animate-pulse-subtle {
+  animation: pulse-subtle 4s ease-in-out infinite;
+}
 
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-primary-dark);
+.animate-pulse-ring {
+  animation: pulse-ring 3s ease-in-out infinite;
+}
 
-    /* @apply bg-primary/20 dark:bg-primary/30; */
-  }
+/* Custom Soft Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
 
-  /* Standard Scrollbar styling for other browsers */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: #CBD5E1 transparent;
-  }
+::-webkit-scrollbar-track {
+  background: var(--clay-bg-canvas);
+}
 
-  .dark * {
-    scrollbar-color: #334155 transparent;
-  }
+::-webkit-scrollbar-thumb {
+  background: #d8cebf;
+  border-radius: 9999px;
+  border: 2px solid var(--clay-bg-canvas);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #c5b8a6;
 }

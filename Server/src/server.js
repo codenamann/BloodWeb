@@ -1,50 +1,45 @@
-import http from "http";
-import app from "./app.js";
-import env from "./config/env.js";
-import logger from "./utils/logger.js";
-import { connectDB, disconnectDB } from "./config/db.js";
+import http from 'http';
+import app from './app.js';
+import env from './config/env.js';
+import { connectDB, disconnectDB } from './config/db.js';
+import logger from "./utils/logger.js"
 
+const PORT = env.server.port;
 const server = http.createServer(app);
 
-// Startup 
+await connectDB();
 
-async function start() {
-    // Connect to DB before accepting any trafic
-    await connectDB();
+server.listen(PORT, () => {
+    logger.info(`Server is running on port ${PORT}`);
+})
 
-    server.listen(env.server.port, () => {
-        logger.info(`Server running in ${env.NODE_ENV} mode on port ${env.server.port}`);
-    });
-}
-
-// Graceful shutdown
-// On SIGTERM or SIGINT: stop accepting new connections, finish in-flight requests
-
-async function shutdown(signal) {
-    logger.info(`Received ${signal}. Shutting down gracefully...`);
-
+const shutdown = async (signal) => {
+    logger.info(`${signal} received, shutting down gracefully...`);
     server.close(async () => {
-        logger.info('HTTP server closed');
-        await disconnectDB();
-        logger.info('Shutdown complete');
-        process.exit(0);
-    });
-
-    // Forcing shutdown if not closed in 10 seconds.
-    setTimeout(() => {
-        logger.error('Could not close connections in time, forcing shutdown');
-        process.exit(1);
-    }, 10000);
+        try {
+            await disconnectDB();
+            logger.info('server closed');
+            process.exit(0);
+        } catch (error) {
+            logger.error('MongoDB disconnection failed', error);
+            process.exit(1);
+        }
+    })
 }
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+server.on('error', (error) => {
+    logger.error('Error', error.message);
+    if (error.code === 'EADDRINUSE') {
+        logger.error(`Port ${PORT} is already in use. Trying to find other port`);
+        let newPort = PORT + 1;
+        server.listen(newPort, () => {
+            logger.info(`Server is running on port ${newPort}`);
+        })
+    } else {
+        logger.error('Error', error.message);
+    }
+    process.emit('SIGTERM');
+})
 
-// Catching unhandled promise rejections - log and shut down rather than
-// running in unknown state.
-process.on('unhandledRejection', (reason) => {
-    logger.error(`Unhandled Rejection: ${reason}`);
-    shutdown('unhandledRejection');
-});
-
-start();
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

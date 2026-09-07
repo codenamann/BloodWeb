@@ -1,3 +1,5 @@
+import AppError from "./appError.js";
+
 export default function requireFields(...fields) {
     return (req, res, next) => {
         for (const field of fields) {

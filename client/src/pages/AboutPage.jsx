@@ -1,233 +1,195 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Crosshair, 
-  Share2, 
-  Zap, 
-  Database, 
-  Map as MapIcon, 
-  Layers, 
-  Mail, 
+import {
+  Crosshair,
+  Share2,
+  Zap,
+  Database,
+  Map as MapIcon,
+  Layers,
+  Mail,
   Rocket,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck,
+  Heart,
+  Droplets,
+  Activity,
+  Users,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
+import ClayAvatar from '../components/ClayAssets/ClayAvatar';
+import ClayBloodDrop from '../components/ClayAssets/ClayBloodDrop';
 
-const EngineCard = ({ icon: Icon, title, description, badge, stats, isWide }) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ duration: 0.5 }}
-    className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-white/2 p-8 hover:bg-white/4 transition-all ${isWide ? 'md:col-span-2' : ''}`}
-  >
-    <div className="flex flex-col h-full gap-6">
-      <div className="flex items-start justify-between">
-        <div className="rounded-xl bg-primary/10 p-3 text-primary group-hover:scale-110 transition-transform">
-          <Icon className="w-6 h-6" />
-        </div>
-        {badge && (
-          <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60 border border-primary/20 px-2 py-1 rounded-md">
-            {badge}
-          </span>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        <h3 className="text-2xl font-bold tracking-tight text-white">{title}</h3>
-        <p className="text-slate-400 leading-relaxed text-sm md:text-base max-w-[90%] font-medium">
-          {description}
-        </p>
-      </div>
-
-      {stats ? (
-        <div className="mt-auto flex flex-wrap gap-4 pt-4">
-          {stats.map((stat, i) => (
-            <div key={i} className="flex flex-col px-6 py-4 rounded-xl bg-primary/5 border border-primary/10 min-w-[140px]">
-              <span className="text-2xl font-black text-primary tracking-tighter">{stat.value}</span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{stat.label}</span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="mt-auto pt-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary/60 group-hover:text-primary transition-colors cursor-pointer">
-          System Active <ArrowRight className="w-3 h-3" />
-        </div>
-      )}
-    </div>
-    
-    {/* Decorative background element for Geospatial card */}
-    {title === "Geospatial Matching" && (
-      <div className="absolute top-1/2 -right-4 w-48 h-48 bg-slate-900/40 rounded-lg -translate-y-1/2 rotate-12 flex items-center justify-center opacity-20 pointer-events-none">
-        <div className="w-full h-full border border-white/10 rounded-lg flex flex-col gap-2 p-4">
-          <div className="h-2 w-1/2 bg-white/10 rounded" />
-          <div className="h-2 w-3/4 bg-white/10 rounded" />
-          <div className="h-2 w-1/4 bg-white/10 rounded" />
-        </div>
-      </div>
-    )}
-  </motion.div>
-);
-
-const StackItem = ({ icon: Icon, name }) => (
-  <motion.div 
-    initial={{ opacity: 0, scale: 0.9 }}
-    whileInView={{ opacity: 1, scale: 1 }}
-    viewport={{ once: true }}
-    className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/5 bg-white/2 p-8 aspect-square hover:bg-white/4 transition-all group"
-  >
-    <div className="rounded-full bg-primary/10 p-4 text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all">
-      <Icon className="w-10 h-10" />
-    </div>
-    <span className="text-md font-bold tracking-tight text-slate-300 group-hover:text-white">{name}</span>
-  </motion.div>
-);
-
-const AboutPage = () => {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.15 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
-  };
-
+export const AboutPage = () => {
   return (
-    <div className="min-h-screen bg-background-dark text-slate-200 antialiased font-sans flex flex-col">
+    <div className="min-h-screen bg-[#f6f1eb] text-[#1c1d22] antialiased font-sans flex flex-col">
       <Navbar />
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative pt-32 pb-24 px-6 overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none opacity-20">
-             <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/20 blur-[120px] rounded-full" />
-          </div>
 
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="relative z-10 max-w-4xl mx-auto text-center space-y-8"
-          >
-            <motion.span variants={itemVariants} className="inline-block text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-primary">
-              The BloodWeb Manifesto
-            </motion.span>
+      <main className="flex-1 pb-16 sm:pb-20">
+        
+        {/* ========================================================================= */}
+        {/* 1. HERO SECTION */}
+        {/* ========================================================================= */}
+        <section className="relative pt-12 sm:pt-20 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden text-center">
+          <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
             
-            <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-black tracking-tighter text-white leading-[0.95]">
-              The Origin: Evolution of <span className="text-primary italic">an Idea</span>
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 clay-inset-pill"
+            >
+              <Heart className="w-3.5 h-3.5 text-[#d93829] fill-[#d93829]" />
+              <span className="text-xs font-extrabold tracking-wide text-[#575965]">
+                Platform Architecture &amp; Mission
+              </span>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-3xl sm:text-5xl md:text-6xl font-black text-[#1c1d22] tracking-tight leading-[1.1]"
+            >
+              Connecting Humans to<br />
+              <span className="text-[#d93829]">Save Lives in Real Time</span>
             </motion.h1>
 
-            <motion.p variants={itemVariants} className="mx-auto max-w-2xl text-lg md:text-xl text-slate-400 leading-relaxed font-medium">
-              What began as a localized college project has mutated into a production-grade lifeline. 
-              BloodWeb bridges the gap between those in urgent need and the heroes ready to provide it.
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-sm sm:text-lg text-[#575965] font-medium leading-relaxed max-w-2xl mx-auto"
+            >
+              BloodWeb was architected with a single non-negotiable principle: in critical medical emergencies, no one should have to wait for manual phone calls, unverified social media posts, or slow bureaucratic chains.
             </motion.p>
-          </motion.div>
-        </section>
 
-        {/* Engine Section */}
-        <section className="py-24 px-6 bg-white/1">
-          <div className="max-w-7xl mx-auto space-y-16">
-            <div className="space-y-4">
-              <h2 className="text-4xl font-black tracking-tighter text-white uppercase italic">The Engine</h2>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">How it actually works</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <EngineCard 
-                icon={Crosshair} 
-                title="Precision Location"
-                description="High-fidelity coordinate tracking ensuring we pinpoint donors and recipients within a sub-5 meter radius for maximum efficiency."
-              />
-              <EngineCard 
-                icon={Share2} 
-                title="Geospatial Matching"
-                description="Our matching algorithm calculates real-time traffic, blood type compatibility, and donor availability to create the perfect circuit of life in under 2 seconds."
-              />
-              <EngineCard 
-                isWide
-                icon={Zap} 
-                badge="Real-time Core"
-                title="Millisecond Alerts"
-                description="When life hangs in the balance, every millisecond counts. Our push notification architecture is optimized for zero-latency delivery across all active carriers."
-                stats={[
-                  { label: "Latency", value: "0.4ms" },
-                  { label: "Uptime", value: "99.9%" }
-                ]}
-              />
-            </div>
           </div>
         </section>
 
-        {/* Tech Stack Section */}
-        <section className="py-24 px-6">
-          <div className="max-w-7xl mx-auto space-y-16">
-            <h2 className="text-4xl font-black tracking-tighter text-white uppercase italic text-center">The Tech Stack</h2>
+        {/* ========================================================================= */}
+        {/* 2. THE ENGINE & CORE ARCHITECTURE */}
+        {/* ========================================================================= */}
+        <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto space-y-8 sm:space-y-12">
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <StackItem icon={Database} name="MERN Stack" />
-              <StackItem icon={MapIcon} name="Leaflet" />
-              <StackItem icon={Layers} name="Framer Motion" />
-              <StackItem icon={Mail} name="Email OTP" />
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-black text-[#1c1d22]">The Matching Engine</h2>
+              <p className="text-xs sm:text-sm text-[#575965] font-medium max-w-lg mx-auto">
+                How BloodWeb routes emergency requests to compatible donors in milliseconds
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Feature 1 */}
+              <div className="clay-card p-6 sm:p-8 bg-white space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="w-12 h-12 rounded-2xl clay-card-crimson flex items-center justify-center text-white shadow-md">
+                    <Crosshair className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-extrabold text-[#1c1d22]">Proximity &amp; Compatibility</h3>
+                  <p className="text-xs sm:text-sm text-[#575965] font-medium leading-relaxed">
+                    Evaluates antigen compatibility across all 8 major blood groups, combined with geospatial distance within a 10km radius.
+                  </p>
+                </div>
+                <div className="pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-[#d93829]">
+                  <span>70% Proximity Weight</span>
+                  <span>Formula Verified</span>
+                </div>
+              </div>
+
+              {/* Feature 2 */}
+              <div className="clay-card p-6 sm:p-8 bg-white space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="w-12 h-12 rounded-2xl clay-card-crimson flex items-center justify-center text-white shadow-md">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-extrabold text-[#1c1d22]">Reliability Score Engine</h3>
+                  <p className="text-xs sm:text-sm text-[#575965] font-medium leading-relaxed">
+                    Tracks volunteer commitment and confirmed donation completions, prioritizing the most reliable responders when seconds count.
+                  </p>
+                </div>
+                <div className="pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-[#d93829]">
+                  <span>30% Reliability Weight</span>
+                  <span>Zero-Spam Filter</span>
+                </div>
+              </div>
+
+              {/* Feature 3 */}
+              <div className="clay-card p-6 sm:p-8 bg-white space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="w-12 h-12 rounded-2xl clay-card-crimson flex items-center justify-center text-white shadow-md">
+                    <Activity className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-extrabold text-[#1c1d22]">Live Coordination Rooms</h3>
+                  <p className="text-xs sm:text-sm text-[#575965] font-medium leading-relaxed">
+                    1:1 private rooms paired directly with every active blood request for instant messaging, token tracking, and hospital arrival updates.
+                  </p>
+                </div>
+                <div className="pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-emerald-700">
+                  <span>Live WebSocket Sync</span>
+                  <span>Full Transparency</span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* 3. CORE METRICS STRIP */}
+        {/* ========================================================================= */}
+        <section className="py-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto clay-card-flat p-6 sm:p-10 bg-white">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              <div className="space-y-1">
+                <div className="text-3xl sm:text-4xl font-black text-[#d93829]">0.4s</div>
+                <div className="text-xs font-bold text-[#747682] uppercase tracking-wider">Broadcast Latency</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-3xl sm:text-4xl font-black text-[#1c1d22]">100%</div>
+                <div className="text-xs font-bold text-[#747682] uppercase tracking-wider">Verified Hospitals</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-3xl sm:text-4xl font-black text-emerald-600">8 Mins</div>
+                <div className="text-xs font-bold text-[#747682] uppercase tracking-wider">Avg Response Time</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-3xl sm:text-4xl font-black text-[#1c1d22]">24 / 7</div>
+                <div className="text-xs font-bold text-[#747682] uppercase tracking-wider">Emergency Readiness</div>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Roadmap Section */}
-        <section className="py-32 px-6">
-          <div className="max-w-6xl mx-auto">
-             <motion.div 
-               initial={{ opacity: 0, scale: 0.98 }}
-               whileInView={{ opacity: 1, scale: 1 }}
-               viewport={{ once: true }}
-               className="relative overflow-hidden rounded-[32px] border border-white/5 bg-linear-to-br from-white/3 to-transparent p-12 md:p-20"
-             >
-                <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
-                  <div className="space-y-10">
-                    <h2 className="text-5xl font-black tracking-tighter text-white leading-none">
-                      The Roadmap:<br />
-                      <span className="italic opacity-50 underline decoration-primary decoration-4 underline-offset-8">What's Next</span>
-                    </h2>
-                    
-                    <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed">
-                      The web is only the beginning. We are currently architecting the <span className="text-primary font-bold italic">Mobile Migration</span>. 
-                      Leveraging React Native, BloodWeb will soon live natively on your device, providing hardware-level access to location services and critical alerts.
-                    </p>
-
-                    <div className="flex items-center gap-6">
-                      <div className="bg-primary px-4 py-2 rounded-lg font-black text-sm tracking-tighter italic">Q4 2024</div>
-                      <div className="flex gap-2 text-slate-500">
-                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
-                           <Rocket className="w-4 h-4" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="hidden md:flex justify-end pr-10">
-                     <motion.div 
-                       animate={{ 
-                         y: [0, -20, 0],
-                         rotate: [0, 5, 0]
-                       }}
-                       transition={{ 
-                         duration: 6,
-                         repeat: Infinity,
-                         ease: "easeInOut"
-                       }}
-                       className="text-white opacity-10"
-                     >
-                        <Rocket className="w-64 h-64" strokeWidth={1} />
-                     </motion.div>
-                  </div>
-                </div>
-             </motion.div>
+        {/* ========================================================================= */}
+        {/* 4. CALL TO ACTION */}
+        {/* ========================================================================= */}
+        <section className="pt-12 pb-6 px-4 sm:px-6 lg:px-8 text-center">
+          <div className="max-w-3xl mx-auto space-y-6">
+            <h2 className="text-2xl sm:text-4xl font-black text-[#1c1d22] tracking-tight">
+              Ready to be part of the network?
+            </h2>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                to="/register"
+                className="w-full sm:w-auto clay-btn-crimson px-7 py-3.5 text-xs sm:text-sm font-bold shadow-lg"
+              >
+                Join as Verified Donor
+              </Link>
+              <Link
+                to="/requests"
+                className="w-full sm:w-auto clay-btn-cream px-7 py-3.5 text-xs sm:text-sm font-bold text-[#1c1d22]"
+              >
+                Explore Active Requests
+              </Link>
+            </div>
           </div>
         </section>
+
       </main>
 
       <Footer />
