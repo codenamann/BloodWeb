@@ -3,7 +3,8 @@ import {
     getRequestByUser,
     getAllRequests,
     getRequestById,
-    cancelRequest
+    cancelRequest,
+    completeRequest
 } from '../../services/request.service.js';
 import { processUploadedDocument } from '../../services/document.service.js';
 import asyncHandler from '../../middleware/asyncHandler.js';
@@ -107,3 +108,23 @@ export const handleCancelRequest = asyncHandler(async (req, res) => {
         }
     });
 });
+
+export const handleCompleteRequest = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new AppError('Invalid request ID format', 400);
+    }
+
+    const request = await completeRequest(id, userId);
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Blood request completed successfully',
+        data: {
+            request
+        }
+    });
+});
+

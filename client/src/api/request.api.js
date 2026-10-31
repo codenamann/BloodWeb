@@ -7,13 +7,23 @@ export const formatRequest = (request) => {
         ...request,
         hospitalName: hospital?.name || request.hospitalName || '',
         hospitalAddress: hospital?.address || request.hospitalAddress || '',
-        hospitalCoordinates: hospital?.coordinates
+        hospitalCity: hospital?.city || request.hospitalCity || '',
+        hospitalState: hospital?.state || request.hospitalState || '',
+        hospitalCoordinates: hospital?.coordinates?.lat != null && hospital?.coordinates?.lng != null
             ? {
                 lat: hospital.coordinates.lat,
                 lng: hospital.coordinates.lng,
             }
             : request.hospitalCoordinates || null,
-        neededBy: request.neededBy || '',
+        neededBy: request.neededBy || null,
+        fulfillment: request.fulfillment || {
+            unitsNeeded: request.unitsNeeded || 1,
+            fulfilledUnits: 0,
+            remainingUnits: request.unitsNeeded || 1,
+            progressPercentage: 0,
+            totalResponses: Array.isArray(request.responses) ? request.responses.length : 0,
+        },
+        responses: Array.isArray(request.responses) ? request.responses : [],
     };
 };
 
@@ -85,3 +95,16 @@ export async function cancelBloodRequest(requestId) {
     const { data } = await client.patch(`/api/request/${requestId}/cancel`);
     return formatRequest(data.data?.request);
 }
+
+export async function completeBloodRequest(requestId) {
+    const { data } = await client.patch(`/api/request/${requestId}/complete`);
+    return formatRequest(data.data?.request);
+}
+
+export {
+    volunteerForRequest,
+    updateVolunteerStatus,
+    withdrawVolunteerResponse,
+    getVolunteersForRequest
+} from './volunteer.api';
+

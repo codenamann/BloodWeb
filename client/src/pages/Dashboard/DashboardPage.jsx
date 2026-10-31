@@ -35,18 +35,27 @@ import LocationCard from '../../components/Dashboard/LocationCard.jsx';
 import AvailabilityCard from '../../components/Dashboard/AvailabilityCard.jsx';
 
 export const DashboardPage = () => {
-  const { currentUser, toggleAvailability } = useAuth();
+  const { currentUser, toggleAvailability, refreshProfile } = useAuth();
   const { requests } = useBloodRequests();
   const { notifications } = useNotifications();
   const navigate = useNavigate();
 
   const [impactTimeframe, setImpactTimeframe] = useState('All Time');
 
-  // Filter emergency requests to those matching the user's blood type (excluding self-created)
+  // Refresh profile metrics on mount
+  React.useEffect(() => {
+    refreshProfile?.();
+  }, [refreshProfile]);
+
+  // Filter emergency requests to active/actionable emergencies matching user's blood type (excluding self-created)
   const currentUserId = (currentUser?._id || currentUser?.id)?.toString();
   const matchingRequests = requests.filter((req) => {
     const creatorId = (req.createdBy?._id || req.createdBy?.id || req.createdBy)?.toString();
     if (currentUserId && creatorId === currentUserId) return false;
+    // Terminal requests are no longer active emergency dispatches
+    if (req.status && req.status !== 'ACTIVE' && req.status !== 'PARTIALLY_FULFILLED') {
+      return false;
+    }
     if (currentUser?.bloodGroup) {
       return isDonorCompatible(currentUser.bloodGroup, req.patientBloodGroup);
     }

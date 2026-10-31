@@ -37,100 +37,49 @@ export const NotificationsPage = () => {
 
   const userNotifications = getNotificationsForUser(currentUser?._id);
 
-  // Extended realistic notifications list matching the visual design
-  const allNotifications = [
-    {
-      _id: 'n-1',
-      category: 'REQUESTS',
-      type: 'ACTIONABLE',
-      title: 'Volunteer Confirmed',
-      body: 'Amit Verma has confirmed to donate for your A+ request at St. John\'s Medical College Hospital.',
-      timeGroup: 'Today',
-      timeStr: '10:42 AM',
-      icon: UserCheck,
-      iconColor: 'bg-red-50 text-[#d93829]',
-      redirectUrl: '/requests/req-1',
-      read: false,
-    },
-    {
-      _id: 'n-2',
-      category: 'MESSAGES',
-      type: 'ACTIONABLE',
-      title: 'New Message in Coordination Room',
-      body: 'Sneha Iyer: "I can also join. Let me know the reporting time."',
-      timeGroup: 'Today',
-      timeStr: '09:15 AM',
-      icon: MessageSquare,
-      iconColor: 'bg-blue-50 text-blue-700',
-      redirectUrl: '/coordination/req-1',
-      read: false,
-    },
-    {
-      _id: 'n-3',
-      category: 'REQUESTS',
-      type: 'INFORMATIONAL',
-      title: 'Request Update',
-      body: 'Your request for 2 units of A+ is now marked as Partially Fulfilled (1/2 units).',
-      timeGroup: 'Today',
-      timeStr: '08:30 AM',
-      icon: AlertCircle,
-      iconColor: 'bg-amber-50 text-amber-800',
-      redirectUrl: '/requests/req-1',
-      read: false,
-    },
-    {
-      _id: 'n-4',
-      category: 'REQUESTS',
-      type: 'ACTIONABLE',
-      title: 'Request Matched Nearby',
-      body: 'A potential donor near you has been found for your O- request.',
-      timeGroup: 'Yesterday',
-      timeStr: 'Yesterday, 6:20 PM',
-      icon: Heart,
-      iconColor: 'bg-red-50 text-[#d93829]',
-      redirectUrl: '/requests/req-1',
-      read: true,
-    },
-    {
-      _id: 'n-5',
-      category: 'SYSTEM',
-      type: 'INFORMATIONAL',
-      title: 'Hospital Verified',
-      body: 'Manipal Hospital has verified your request details.',
-      timeGroup: 'Yesterday',
-      timeStr: 'Yesterday, 4:10 PM',
-      icon: Building,
-      iconColor: 'bg-emerald-50 text-emerald-800',
-      redirectUrl: '/requests/req-1',
-      read: true,
-    },
-    {
-      _id: 'n-6',
-      category: 'SYSTEM',
-      type: 'INFORMATIONAL',
-      title: 'Community Impact Update',
-      body: 'Over 250+ lives were touched this month. Thank you for being part of BloodWeb! ❤️',
-      timeGroup: 'This Week',
-      timeStr: 'Mar 22, 2025',
-      icon: Sparkles,
-      iconColor: 'bg-amber-50 text-amber-800',
-      redirectUrl: '/dashboard',
-      read: true,
-    },
-    {
-      _id: 'n-7',
-      category: 'SYSTEM',
-      type: 'INFORMATIONAL',
-      title: 'Security Notice',
-      body: 'Account login confirmed from verified device.',
-      timeGroup: 'This Week',
-      timeStr: 'Mar 20, 2025',
-      icon: ShieldCheck,
-      iconColor: 'bg-stone-100 text-stone-700',
-      redirectUrl: '/profile',
-      read: true,
-    },
-  ];
+  // Map real notifications with icon, category, and display time formatting
+  const allNotifications = userNotifications.map((n) => {
+    let icon = Bell;
+    let iconColor = 'bg-red-50 text-[#d93829]';
+    let category = 'REQUESTS';
+
+    const titleLower = (n.title || '').toLowerCase();
+    if (titleLower.includes('message') || titleLower.includes('coordination')) {
+      icon = MessageSquare;
+      iconColor = 'bg-blue-50 text-blue-700';
+      category = 'MESSAGES';
+    } else if (titleLower.includes('system') || n.type === 'INFORMATIONAL') {
+      icon = ShieldCheck;
+      iconColor = 'bg-stone-100 text-stone-700';
+      category = 'SYSTEM';
+    } else {
+      icon = UserCheck;
+      iconColor = 'bg-red-50 text-[#d93829]';
+      category = 'REQUESTS';
+    }
+
+    const createdDate = n.createdAt ? new Date(n.createdAt) : new Date();
+    const now = new Date();
+    const isToday = createdDate.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = createdDate.toDateString() === yesterday.toDateString();
+
+    let timeGroup = 'Earlier';
+    if (isToday) timeGroup = 'Today';
+    else if (isYesterday) timeGroup = 'Yesterday';
+
+    const timeStr = createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    return {
+      ...n,
+      icon,
+      iconColor,
+      category,
+      timeGroup,
+      timeStr,
+    };
+  });
 
   const filtered = allNotifications.filter((n) => {
     if (filterCategory === 'REQUESTS') return n.category === 'REQUESTS';
@@ -187,10 +136,10 @@ export const NotificationsPage = () => {
             <div className="clay-card-flat p-3 bg-white/95 flex flex-wrap items-center justify-between gap-3 shadow-xs">
               <div className="flex items-center gap-1.5 overflow-x-auto">
                 {[
-                  { id: 'ALL', label: 'All', count: 3 },
-                  { id: 'REQUESTS', label: 'Requests', count: 2 },
-                  { id: 'MESSAGES', label: 'Messages', count: 1 },
-                  { id: 'SYSTEM', label: 'System', count: 0 },
+                  { id: 'ALL', label: 'All', count: allNotifications.filter(n => !n.read).length },
+                  { id: 'REQUESTS', label: 'Requests', count: allNotifications.filter(n => n.category === 'REQUESTS' && !n.read).length },
+                  { id: 'MESSAGES', label: 'Messages', count: allNotifications.filter(n => n.category === 'MESSAGES' && !n.read).length },
+                  { id: 'SYSTEM', label: 'System', count: allNotifications.filter(n => n.category === 'SYSTEM' && !n.read).length },
                 ].map((tab) => {
                   const isActive = filterCategory === tab.id;
                   return (
@@ -232,22 +181,29 @@ export const NotificationsPage = () => {
             </div>
 
             {/* Notifications Groups */}
-            {['Today', 'Yesterday', 'This Week'].map((group) => {
-              const groupItems = filtered.filter((n) => n.timeGroup === group);
-              if (groupItems.length === 0) return null;
+            {filtered.length === 0 ? (
+              <div className="clay-card p-10 bg-white/95 text-center text-stone-500 space-y-2 shadow-xs">
+                <Bell className="w-8 h-8 text-stone-300 mx-auto" />
+                <h4 className="text-sm font-bold text-stone-700">No notifications yet</h4>
+                <p className="text-xs text-stone-400">You're all caught up on your requests and coordination rooms.</p>
+              </div>
+            ) : (
+              ['Today', 'Yesterday', 'Earlier'].map((group) => {
+                const groupItems = filtered.filter((n) => n.timeGroup === group);
+                if (groupItems.length === 0) return null;
 
-              return (
-                <div key={group} className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-black text-stone-500 uppercase tracking-wider pl-1">
-                    <span className="w-2 h-2 rounded-full bg-[#d93829]" />
-                    <span>{group}</span>
-                  </div>
+                return (
+                  <div key={group} className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-black text-stone-500 uppercase tracking-wider pl-1">
+                      <span className="w-2 h-2 rounded-full bg-[#d93829]" />
+                      <span>{group}</span>
+                    </div>
 
-                  <div className="space-y-2.5">
-                    {groupItems.map((n) => {
-                      const Icon = n.icon;
+                    <div className="space-y-2.5">
+                      {groupItems.map((n) => {
+                        const Icon = n.icon;
 
-                      return (
+                        return (
                         <div
                           key={n._id}
                           onClick={() => handleNotificationClick(n)}
@@ -294,7 +250,8 @@ export const NotificationsPage = () => {
                   </div>
                 </div>
               );
-            })}
+            })
+          )}
 
           </div>
 
@@ -310,10 +267,10 @@ export const NotificationsPage = () => {
 
               <div className="space-y-1">
                 {[
-                  { id: 'ALL', label: 'All Notifications', count: 3 },
-                  { id: 'REQUESTS', label: 'Blood Requests', count: 2 },
-                  { id: 'MESSAGES', label: 'Live Messages', count: 1 },
-                  { id: 'SYSTEM', label: 'System & Security', count: 0 },
+                  { id: 'ALL', label: 'All Notifications', count: allNotifications.length },
+                  { id: 'REQUESTS', label: 'Blood Requests', count: allNotifications.filter(n => n.category === 'REQUESTS').length },
+                  { id: 'MESSAGES', label: 'Live Messages', count: allNotifications.filter(n => n.category === 'MESSAGES').length },
+                  { id: 'SYSTEM', label: 'System & Security', count: allNotifications.filter(n => n.category === 'SYSTEM').length },
                 ].map((item) => (
                   <button
                     key={item.id}

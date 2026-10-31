@@ -7,6 +7,7 @@ import {
   updateDob as updateDobApi,
   toggleAvailability as toggleAvailabilityApi,
 } from '../api/profile.api';
+import { disconnectSocket } from '../services/socket.js';
 
 const AuthContext = createContext(null);
 
@@ -94,6 +95,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('bloodweb_token');
+    disconnectSocket();
     setCurrentUser(null);
   };
 
@@ -156,6 +158,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshProfile = async () => {
+    try {
+      const profileRes = await getUserProfile();
+      if (profileRes.status === 'success' && profileRes.data?.user) {
+        setCurrentUser(profileRes.data.user);
+        return profileRes.data.user;
+      }
+    } catch (err) {
+      console.error('Failed to refresh profile', err);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -168,6 +182,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         pendingVerificationEmail,
         updateUser,
+        refreshProfile,
         updatePhone,
         updateBloodGroup,
         updateDob,

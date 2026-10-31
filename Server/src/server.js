@@ -2,10 +2,13 @@ import http from 'http';
 import app from './app.js';
 import env from './config/env.js';
 import { connectDB, disconnectDB } from './config/db.js';
-import logger from "./utils/logger.js"
+import logger from "./utils/logger.js";
+import { initIO } from './utils/socket.js';
 
 const PORT = env.server.port;
 const server = http.createServer(app);
+
+initIO(server);
 
 await connectDB();
 

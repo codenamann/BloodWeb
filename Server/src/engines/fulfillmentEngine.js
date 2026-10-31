@@ -10,7 +10,7 @@ export default async function getRequestStatus(requestId) {
         status: 'ACCEPTED'
     });
 
-    if (acceptedCount === 0) return 'PENDING';
-    if (acceptedCount >= request.unitsNeeded) return 'FULFILLED';
+    if (acceptedCount === 0) return 'ACTIVE';
+    if (acceptedCount >= (request.unitsNeeded || 1)) return 'FULFILLED';
     return 'PARTIALLY_FULFILLED';
 }

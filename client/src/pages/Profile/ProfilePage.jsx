@@ -12,9 +12,13 @@ import ReliabilityCard from './components/ReliabilityCard';
 import AccountActionsCard from './components/AccountActionsCard';
 
 export const ProfilePage = () => {
-  const { currentUser, updateUser } = useAuth();
+  const { currentUser, updateUser, refreshProfile } = useAuth();
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isLocationFullscreen, setIsLocationFullscreen] = useState(false);
+
+  React.useEffect(() => {
+    refreshProfile?.();
+  }, [refreshProfile]);
 
   const handleLocationConfirm = async (locationData) => {
     try {

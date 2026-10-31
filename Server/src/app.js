@@ -8,6 +8,9 @@ import authRoutes from './api/routes/auth.routes.js';
 import userRoutes from './api/routes/user.routes.js';
 import hospitalRoutes from './api/routes/hospital.routes.js';
 import requestRoutes from './api/routes/request.routes.js';
+import volunteerRoutes from './api/routes/volunteer.routes.js';
+import coordinationRoutes from './api/routes/coordination.routes.js';
+import notificationRoutes from './api/routes/notification.routes.js';
 
 const app = express();
 
@@ -45,6 +48,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/hospital', hospitalRoutes);
 app.use('/api/request', requestRoutes);
+app.use('/api/volunteer', volunteerRoutes);
+app.use('/api/coordination', coordinationRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Static file serving for uploads
 app.use('/uploads', express.static('public/uploads'));

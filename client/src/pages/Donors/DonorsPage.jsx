@@ -59,8 +59,19 @@ export const DonorsPage = () => {
     };
   });
 
+  const currentUserId = (currentUser?._id || currentUser?.id)?.toString();
+
   // Filter logic
   const filtered = enrichedRequests.filter((req) => {
+    // Exclude own requests
+    const creatorId = (req.createdBy?._id || req.createdBy?.id || req.createdBy)?.toString();
+    if (currentUserId && creatorId === currentUserId) return false;
+
+    // Terminal requests (COMPLETED / CANCELLED) cannot accept new volunteers
+    if (req.status && req.status !== 'ACTIVE' && req.status !== 'PARTIALLY_FULFILLED') {
+      return false;
+    }
+
     // Blood Group
     if (selectedBloodGroup !== 'ALL' && req.patientBloodGroup !== selectedBloodGroup) {
       return false;

@@ -7,7 +7,11 @@ import logger from "../utils/logger.js";
 import AppError from "../middleware/appError.js";
 import { deleteDocument } from "./document.service.js";
 import { getCompatibleRecipientGroups } from "../engines/compatibilityEngine.js";
-import { BLOOD_GROUPS } from "../models/User.model.js";
+import User, { BLOOD_GROUPS } from "../models/User.model.js";
+import CoordinationRoom from "../models/CoordinationRoom.model.js";
+import { sendSystemMessage } from "./message.service.js";
+import { emitToRoom, emitToRequest } from "../utils/socket.js";
+import { notifyRequestCancelled, notifyRequestCompleted } from "./notification.service.js";
 import mongoose from "mongoose";
 
 export async function createRequest(data, createdBy) {
@@ -330,7 +334,12 @@ export async function transitionStatus(requestId, newStatus) {
     const request = await BloodRequest.findOne({ _id: requestId });
     if (!request) throw new AppError('Request not found', 404);
 
-    validateRequestTransition(request.status, newStatus);
+    try {
+        validateRequestTransition(request.status, newStatus);
+    } catch (err) {
+        throw new AppError(err.message, 400);
+    }
+
     request.status = newStatus;
     await request.save();
 
@@ -341,7 +350,143 @@ export async function cancelRequest(requestId, userId) {
     if (!mongoose.Types.ObjectId.isValid(requestId)) {
         throw new AppError('Invalid request ID format', 400);
     }
-    const request = await BloodRequest.findOne({ _id: requestId, createdBy: userId });
+    const request = await BloodRequest.findOne({ _id: requestId, createdBy: userId })
+        .populate('hospitalId', 'name');
     if (!request) throw new AppError('Request not found or permission denied', 404);
-    return transitionStatus(requestId, 'CANCELLED');
+
+    const updated = await transitionStatus(requestId, 'CANCELLED');
+
+    // Close coordination room if one exists
+    try {
+        const room = await CoordinationRoom.findOne({ requestId });
+        if (room && room.status !== 'CLOSED') {
+            room.status = 'CLOSED';
+            room.closedAt = new Date();
+            await room.save();
+
+            try {
+                await sendSystemMessage(
+                    room._id,
+                    'ROOM_CLOSED',
+                    'The blood request has been cancelled by the requester and this coordination room is now closed.'
+                );
+            } catch (msgErr) {
+                logger.warn(`Failed to post cancel system message: ${msgErr.message}`);
+            }
+
+            emitToRoom(requestId, 'ROOM_CLOSED', {
+                roomId: room._id.toString(),
+                requestId: requestId.toString(),
+            });
+        }
+    } catch (roomErr) {
+        logger.warn(`Failed to close room on request cancel: ${roomErr.message}`);
+    }
+
+    // Notify all responding volunteers that the request was cancelled
+    try {
+        const volunteers = await VolunteerResponse.find({
+            requestId,
+            status: { $in: ['ACCEPTED', 'PENDING', 'BACKUP'] }
+        }).select('donorId');
+        const donorIds = volunteers.map(v => v.donorId);
+        await notifyRequestCancelled(requestId, donorIds, request.hospitalId?.name);
+    } catch (notifErr) {
+        logger.warn(`Failed to notify volunteers of request cancellation: ${notifErr.message}`);
+    }
+
+    // Broadcast real-time cancel events to request and room listeners
+    emitToRequest(requestId, 'REQUEST_CANCELLED', {
+        requestId: requestId.toString(),
+        status: 'CANCELLED',
+    });
+    emitToRoom(requestId, 'REQUEST_CANCELLED', {
+        requestId: requestId.toString(),
+        status: 'CANCELLED',
+    });
+
+    return updated;
+}
+
+export async function completeRequest(requestId, userId) {
+    if (!mongoose.Types.ObjectId.isValid(requestId)) {
+        throw new AppError('Invalid request ID format', 400);
+    }
+
+    const request = await BloodRequest.findById(requestId).populate('hospitalId', 'name');
+    if (!request) {
+        throw new AppError('Blood request not found', 404);
+    }
+
+    if (!request.createdBy.equals(userId)) {
+        throw new AppError('Only the request creator can mark this request as completed', 403);
+    }
+
+    try {
+        validateRequestTransition(request.status, 'COMPLETED');
+    } catch (err) {
+        throw new AppError(err.message, 400);
+    }
+
+    const acceptedVolunteers = await VolunteerResponse.find({
+        requestId,
+        status: 'ACCEPTED'
+    });
+
+    if (!acceptedVolunteers || acceptedVolunteers.length === 0) {
+        throw new AppError('Cannot complete request without at least one accepted volunteer', 400);
+    }
+
+    request.status = 'COMPLETED';
+    await request.save();
+
+    // Increment successfulDonations for all confirmed accepted donors
+    const acceptedDonorIds = acceptedVolunteers.map(v => v.donorId);
+    await User.updateMany(
+        { _id: { $in: acceptedDonorIds } },
+        { $inc: { successfulDonations: 1 } }
+    );
+
+    // Safely close Coordination Room if one exists
+    try {
+        const room = await CoordinationRoom.findOne({ requestId });
+        if (room && room.status !== 'CLOSED') {
+            room.status = 'CLOSED';
+            room.closedAt = new Date();
+            await room.save();
+
+            try {
+                await sendSystemMessage(room._id, 'REQUEST_COMPLETED');
+            } catch (msgErr) {
+                logger.warn(`Failed to record REQUEST_COMPLETED system message: ${msgErr.message}`);
+            }
+
+            emitToRoom(requestId, 'ROOM_CLOSED', {
+                roomId: room._id.toString(),
+                requestId: requestId.toString(),
+            });
+        }
+    } catch (roomErr) {
+        logger.warn(`Failed to close coordination room for completed request ${requestId}: ${roomErr.message}`);
+    }
+
+    // Notify all accepted donors of completion and donation credit
+    try {
+        const hospName = request.hospitalId?.name || 'the hospital';
+        await notifyRequestCompleted(requestId, acceptedDonorIds, hospName);
+    } catch (notifErr) {
+        logger.warn(`Failed to notify accepted donors of completion: ${notifErr.message}`);
+    }
+
+    // Broadcast real-time completion events
+    emitToRequest(requestId, 'REQUEST_COMPLETED', {
+        requestId: requestId.toString(),
+        status: 'COMPLETED',
+    });
+    emitToRoom(requestId, 'REQUEST_COMPLETED', {
+        requestId: requestId.toString(),
+        status: 'COMPLETED',
+    });
+
+    return getRequestById(requestId, userId);
 }

@@ -53,7 +53,7 @@ const volunteerResponseSchema = new mongoose.Schema(
         // Location at time of Volunteering
         locationAtResponse: {
             type: locationAtResponseSchema,
-            required: [true, "Location at time of volunteering is required"],
+            default: null,
         },
 
         // Estimated distance and ETA to the hospital at the time of volunteering
