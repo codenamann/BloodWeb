@@ -1,6 +1,7 @@
 import AppError from "../middleware/appError.js";
 import User from "../models/User.model.js";
 import otpTemplate from "../templates/otp.template.js";
+import passwordResetTemplate from "../templates/passwordReset.template.js";
 import { sendEmail } from "../utils/email.js";
 import { generateOtp, hashOtp } from "../utils/otp.js";
 import jwt from "jsonwebtoken";
@@ -9,33 +10,35 @@ import env from "../config/env.js";
 const OTP_EXPIRES_AT = 5; // minutes
 
 export async function createUser({ name, email, password }) {
-    if (await User.exists({ email })) throw new AppError('User already exists. Please login.', 400);
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    if (await User.exists({ email: normalizedEmail })) throw new AppError('User already exists. Please login.', 400);
 
     const otp = generateOtp(6);
     const otpExpiresAt = new Date(Date.now() + OTP_EXPIRES_AT * 60 * 1000)
 
     const user = await User.create({
         name,
-        email,
+        email: normalizedEmail,
         passwordHash: password,
         otpHash: hashOtp(otp),
         otpExpiresAt
     });
 
-    await sendOtp(email, otp, OTP_EXPIRES_AT);
+    await sendOtp(normalizedEmail, otp, OTP_EXPIRES_AT);
 
     return user;
 }
 
 export async function loginUser(email, password) {
-    const user = await User.findOne({ email }).select('+passwordHash');
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail }).select('+passwordHash');
     if (!user) throw new AppError('Invalid email or password', 401);
 
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) throw new AppError('Invalid email or password', 401);
 
     if (!user.emailVerified) {
-        await resendOtp(email);
+        await resendOtp(normalizedEmail);
         throw new AppError('Please verify your email. OTP has been sent to your email.', 403, 'EMAIL_NOT_VERIFIED');
     }
     if (user.accountStatus !== 'ACTIVE') throw new AppError('Your account is inactive. Please contact support.', 403);
@@ -54,7 +57,8 @@ export async function loginUser(email, password) {
 }
 
 export async function resendOtp(email) {
-    const user = await User.findOne({ email }).select('+otpHash +otpExpiresAt');
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail }).select('+otpHash +otpExpiresAt');
     if (!user) throw new AppError('User not found', 404);
     if (user.emailVerified) throw new AppError('User is already verified', 400);
 
@@ -67,7 +71,7 @@ export async function resendOtp(email) {
     user.otpExpiresAt = otpExpiresAt;
     await user.save();
 
-    await sendOtp(email, otp, OTP_EXPIRES_AT);
+    await sendOtp(normalizedEmail, otp, OTP_EXPIRES_AT);
 }
 
 export async function sendOtp(email, otp, expiresIn) {
@@ -77,7 +81,8 @@ export async function sendOtp(email, otp, expiresIn) {
 }
 
 export async function verifyOtp(email, candidateOtp) {
-    const user = await User.findOne({ email }).select('+otpHash +otpExpiresAt');
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail }).select('+otpHash +otpExpiresAt');
     if (!user) throw new AppError('User not found', 404);
 
     const hashedOtp = hashOtp(candidateOtp);
@@ -118,6 +123,138 @@ export async function updatePassword(userId, password) {
     if (!user) throw new AppError('User not found', 404);
     user.passwordHash = password;
     return await user.save();
+}
+
+const RESET_OTP_EXPIRES_MINUTES = 10;
+
+export async function forgotPassword(email) {
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    if (!normalizedEmail) {
+        throw new AppError('Email is required', 400);
+    }
+
+    const user = await User.findOne({ email: normalizedEmail }).select('+resetPasswordOtpExpiresAt');
+
+    // Security: Timing and enumeration protection.
+    // Return identical success response whether user exists, is active, or verified.
+    if (!user || user.accountStatus !== 'ACTIVE' || !user.emailVerified) {
+        return {
+            message: 'If an account exists with this email, a 6-digit password reset code has been sent.'
+        };
+    }
+
+    // Cooldown check: 1 minute minimum between requests to prevent spamming
+    if (user.resetPasswordOtpExpiresAt) {
+        const timeSinceExpiry = user.resetPasswordOtpExpiresAt.getTime() - Date.now();
+        const minWaitMs = (RESET_OTP_EXPIRES_MINUTES - 1) * 60 * 1000;
+        if (timeSinceExpiry > minWaitMs) {
+            return {
+                message: 'If an account exists with this email, a 6-digit password reset code has been sent.'
+            };
+        }
+    }
+
+    const otp = generateOtp(6);
+    const expiresAt = new Date(Date.now() + RESET_OTP_EXPIRES_MINUTES * 60 * 1000);
+
+    user.resetPasswordOtpHash = hashOtp(otp);
+    user.resetPasswordOtpExpiresAt = expiresAt;
+    user.resetPasswordAttempts = 0;
+    await user.save();
+
+    // Dev logging
+    if (env.isDevelopment) {
+        console.log(`[PASSWORD RESET OTP] For ${normalizedEmail}: ${otp}`);
+    }
+
+    // Send email
+    try {
+        const template = passwordResetTemplate({
+            userName: user.name || 'User',
+            otp,
+            expiresIn: RESET_OTP_EXPIRES_MINUTES
+        });
+        await sendEmail({
+            to: normalizedEmail,
+            subject: 'BloodWeb — Password Reset Code',
+            emailBody: template
+        });
+    } catch (err) {
+        console.error('Failed to dispatch password reset email:', err.message);
+    }
+
+    return {
+        message: 'If an account exists with this email, a 6-digit password reset code has been sent.'
+    };
+}
+
+export async function resetPassword(email, otp, newPassword) {
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const normalizedOtp = (otp || '').trim();
+
+    if (!normalizedEmail || !normalizedOtp || !newPassword) {
+        throw new AppError('Email, OTP code, and new password are required', 400);
+    }
+
+    if (normalizedOtp.length !== 6 || !/^\d{6}$/.test(normalizedOtp)) {
+        throw new AppError('OTP must be a 6-digit number', 400);
+    }
+
+    if (newPassword.length < 8) {
+        throw new AppError('New password must be at least 8 characters long', 400);
+    }
+
+    const user = await User.findOne({ email: normalizedEmail }).select(
+        '+passwordHash +resetPasswordOtpHash +resetPasswordOtpExpiresAt +resetPasswordAttempts'
+    );
+
+    if (!user || !user.resetPasswordOtpHash || !user.resetPasswordOtpExpiresAt) {
+        throw new AppError('Invalid or expired password reset request. Please request a new code.', 400);
+    }
+
+    // Check expiry
+    if (Date.now() > user.resetPasswordOtpExpiresAt.getTime()) {
+        user.resetPasswordOtpHash = null;
+        user.resetPasswordOtpExpiresAt = null;
+        user.resetPasswordAttempts = 0;
+        await user.save();
+        throw new AppError('Password reset code has expired. Please request a new code.', 400);
+    }
+
+    // Brute-force protection: max 5 failed attempts per OTP
+    if ((user.resetPasswordAttempts || 0) >= 5) {
+        user.resetPasswordOtpHash = null;
+        user.resetPasswordOtpExpiresAt = null;
+        user.resetPasswordAttempts = 0;
+        await user.save();
+        throw new AppError('Too many failed attempts. This reset code has been invalidated. Please request a new code.', 429);
+    }
+
+    // Validate OTP hash
+    const candidateHash = hashOtp(normalizedOtp);
+    if (candidateHash !== user.resetPasswordOtpHash) {
+        user.resetPasswordAttempts = (user.resetPasswordAttempts || 0) + 1;
+        await user.save();
+        const remaining = 5 - user.resetPasswordAttempts;
+        if (remaining <= 0) {
+            user.resetPasswordOtpHash = null;
+            user.resetPasswordOtpExpiresAt = null;
+            await user.save();
+            throw new AppError('Too many failed attempts. Code has been invalidated. Please request a new code.', 400);
+        }
+        throw new AppError(`Invalid reset code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`, 400);
+    }
+
+    // Set new password (pre-save hook hashes with bcrypt 12)
+    user.passwordHash = newPassword;
+    user.resetPasswordOtpHash = null;
+    user.resetPasswordOtpExpiresAt = null;
+    user.resetPasswordAttempts = 0;
+    await user.save();
+
+    return {
+        message: 'Password has been reset successfully. Please log in with your new password.'
+    };
 }
 
 export async function getUserById(userId) {

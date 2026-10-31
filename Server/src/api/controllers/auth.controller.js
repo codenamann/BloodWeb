@@ -53,3 +53,23 @@ export async function resendOtp(req, res) {
         message: 'OTP resent successfully',
     });
 }
+
+export async function forgotPassword(req, res) {
+    const { email } = req.body;
+    const result = await userService.forgotPassword(email);
+
+    res.status(200).json({
+        status: 'success',
+        message: result.message,
+    });
+}
+
+export async function resetPassword(req, res) {
+    const { email, otp, newPassword } = req.body;
+    const result = await userService.resetPassword(email, otp, newPassword);
+
+    res.status(200).json({
+        status: 'success',
+        message: result.message,
+    });
+}

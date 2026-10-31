@@ -19,3 +19,13 @@ export async function resendOtp(email) {
     const res = await client.post("/api/auth/resend-otp", { email });
     return res.data;
 }
+
+export async function forgotPassword(email) {
+    const res = await client.post("/api/auth/forgot-password", { email });
+    return res.data;
+}
+
+export async function resetPassword({ email, otp, newPassword }) {
+    const res = await client.post("/api/auth/reset-password", { email, otp, newPassword });
+    return res.data;
+}

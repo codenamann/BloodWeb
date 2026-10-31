@@ -1,7 +1,7 @@
 import express from 'express';
 import requireFields from '../../middleware/requireFields.js';
 import asyncHandler from '../../middleware/asyncHandler.js';
-import { login, register, resendOtp, verifyOtp } from '../controllers/auth.controller.js';
+import { login, register, resendOtp, verifyOtp, forgotPassword, resetPassword } from '../controllers/auth.controller.js';
 import rateLimiter from '../../middleware/rateLimiter.js';
 
 const router = express.Router();
@@ -32,6 +32,20 @@ router.post(
   requireFields('email'),
   rateLimiter({ windowMs: 15 * 60 * 1000, limit: 3 }),
   asyncHandler(resendOtp)
+);
+
+router.post(
+  '/forgot-password',
+  requireFields('email'),
+  rateLimiter({ windowMs: 15 * 60 * 1000, limit: 5 }),
+  asyncHandler(forgotPassword)
+);
+
+router.post(
+  '/reset-password',
+  requireFields('email', 'otp', 'newPassword'),
+  rateLimiter({ windowMs: 15 * 60 * 1000, limit: 5 }),
+  asyncHandler(resetPassword)
 );
 
 export default router;

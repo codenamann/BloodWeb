@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail,
   Lock,
@@ -8,10 +8,19 @@ import {
   ShieldCheck,
   Heart,
   UserCheck,
+  KeyRound,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { PasswordInput } from '../../components/ui';
+import {
+  forgotPassword as forgotPasswordApi,
+  resetPassword as resetPasswordApi,
+} from '../../api/auth.api';
 import ClayLogo from '../../components/ClayAssets/ClayLogo';
 import ClayAvatar from '../../components/ClayAssets/ClayAvatar';
 
@@ -21,10 +30,31 @@ export const LoginPage = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Password reset state
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetStep, setResetStep] = useState(1); // 1: Email, 2: OTP + New Password, 3: Success
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetOtp, setResetOtp] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSuccessMessage, setResetSuccessMessage] = useState('');
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/dashboard';
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownSeconds]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,6 +91,91 @@ export const LoginPage = () => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleOpenResetModal = (e) => {
+    e.preventDefault();
+    setResetEmail(email.trim());
+    setResetStep(1);
+    setResetError('');
+    setResetSuccessMessage('');
+    setResetOtp('');
+    setResetNewPassword('');
+    setResetConfirmPassword('');
+    setShowResetModal(true);
+  };
+
+  const handleSendResetOtp = async (e) => {
+    e?.preventDefault();
+    setResetError('');
+    if (!resetEmail || !resetEmail.includes('@')) {
+      setResetError('Please enter a valid email address.');
+      return;
+    }
+
+    try {
+      setResetLoading(true);
+      const res = await forgotPasswordApi(resetEmail.trim());
+      setResetSuccessMessage(
+        res.message || 'A 6-digit reset code has been sent to your email.'
+      );
+      setResetStep(2);
+      setCooldownSeconds(60);
+    } catch (err) {
+      setResetError(
+        err.response?.data?.message ||
+          'Failed to send reset code. Please try again.'
+      );
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleConfirmReset = async (e) => {
+    e.preventDefault();
+    setResetError('');
+
+    if (!resetOtp || resetOtp.trim().length !== 6) {
+      setResetError('Please enter the 6-digit verification code.');
+      return;
+    }
+
+    if (!resetNewPassword || resetNewPassword.length < 8) {
+      setResetError('New password must be at least 8 characters long.');
+      return;
+    }
+
+    if (resetNewPassword !== resetConfirmPassword) {
+      setResetError('Passwords do not match.');
+      return;
+    }
+
+    try {
+      setResetLoading(true);
+      const res = await resetPasswordApi({
+        email: resetEmail.trim(),
+        otp: resetOtp.trim(),
+        newPassword: resetNewPassword,
+      });
+
+      setResetStep(3);
+      setResetSuccessMessage(
+        res.message || 'Password has been reset successfully!'
+      );
+      setEmail(resetEmail.trim());
+      setPassword(resetNewPassword);
+
+      setTimeout(() => {
+        setShowResetModal(false);
+      }, 2500);
+    } catch (err) {
+      setResetError(
+        err.response?.data?.message ||
+          'Failed to reset password. Please check your code.'
+      );
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -101,20 +216,20 @@ export const LoginPage = () => {
             </p>
           </div>
 
-          {error && (
-            <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs font-bold text-[#d93829]">
-              {error}
-            </div>
-          )}
-
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-medium">
+                {error}
+              </div>
+            )}
+
             <div>
               <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#575965] mb-1.5">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <Mail className="w-4 h-4 text-[#8a8c98] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="email"
                   required
@@ -131,16 +246,13 @@ export const LoginPage = () => {
                 <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#575965]">
                   Password
                 </label>
-                <a
-                  href="#forgot"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Password reset link simulated to your email.');
-                  }}
-                  className="text-[11px] font-bold text-[#d93829] hover:underline"
+                <button
+                  type="button"
+                  onClick={handleOpenResetModal}
+                  className="text-[11px] font-bold text-[#d93829] hover:underline cursor-pointer"
                 >
                   Forgot?
-                </a>
+                </button>
               </div>
               <PasswordInput
                 value={password}
@@ -172,6 +284,213 @@ export const LoginPage = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Password Reset Modal */}
+      <AnimatePresence>
+        {showResetModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full border border-stone-200 shadow-2xl relative"
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setShowResetModal(false)}
+                className="absolute top-4 right-4 p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Step 1: Request OTP */}
+              {resetStep === 1 && (
+                <form onSubmit={handleSendResetOtp} className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-[#d93829]">
+                      <KeyRound className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-stone-900">
+                        Reset Password
+                      </h3>
+                      <p className="text-xs text-stone-500">
+                        We will send a 6-digit reset code to your email.
+                      </p>
+                    </div>
+                  </div>
+
+                  {resetError && (
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{resetError}</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1.5 uppercase tracking-wide">
+                      Account Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        required
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        placeholder="you@domain.com"
+                        className="w-full pl-10 pr-4 py-2.5 text-sm bg-stone-50 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowResetModal(false)}
+                      className="flex-1 py-2.5 rounded-xl border border-stone-300 text-xs font-bold text-stone-600 hover:bg-stone-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={resetLoading}
+                      className="flex-1 py-2.5 clay-btn-crimson text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                    >
+                      {resetLoading ? 'Sending Code...' : 'Send Reset Code'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Step 2: Enter Code & New Password */}
+              {resetStep === 2 && (
+                <form onSubmit={handleConfirmReset} className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-[#d93829]">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-stone-900">
+                        Set New Password
+                      </h3>
+                      <p className="text-xs text-stone-500">
+                        Code sent to{' '}
+                        <span className="font-semibold text-stone-700">
+                          {resetEmail}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {resetSuccessMessage && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                      <span>{resetSuccessMessage}</span>
+                    </div>
+                  )}
+
+                  {resetError && (
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{resetError}</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-stone-700 uppercase tracking-wide">
+                        6-Digit Verification Code
+                      </label>
+                      <button
+                        type="button"
+                        disabled={cooldownSeconds > 0 || resetLoading}
+                        onClick={handleSendResetOtp}
+                        className="text-[11px] font-bold text-[#d93829] hover:underline disabled:text-stone-400 disabled:no-underline flex items-center gap-1"
+                      >
+                        <RefreshCw
+                          className={`w-3 h-3 ${resetLoading ? 'animate-spin' : ''}`}
+                        />
+                        {cooldownSeconds > 0
+                          ? `Resend in ${cooldownSeconds}s`
+                          : 'Resend Code'}
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      required
+                      value={resetOtp}
+                      onChange={(e) =>
+                        setResetOtp(e.target.value.replace(/\D/g, ''))
+                      }
+                      placeholder="Enter Reset Code"
+                      className="w-full text-center tracking-[0.5em] font-mono text-lg py-2.5 bg-stone-50 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1.5 uppercase tracking-wide">
+                      New Password (min 8 chars)
+                    </label>
+                    <PasswordInput
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1.5 uppercase tracking-wide">
+                      Confirm New Password
+                    </label>
+                    <PasswordInput
+                      value={resetConfirmPassword}
+                      onChange={(e) => setResetConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setResetStep(1)}
+                      className="flex-1 py-2.5 rounded-xl border border-stone-300 text-xs font-bold text-stone-600 hover:bg-stone-50 transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={resetLoading}
+                      className="flex-1 py-2.5 clay-btn-crimson text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                    >
+                      {resetLoading ? 'Resetting...' : 'Reset Password'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Step 3: Success Confirmation */}
+              {resetStep === 3 && (
+                <div className="text-center py-4 space-y-3">
+                  <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-black text-stone-900">
+                    Password Reset Complete
+                  </h3>
+                  <p className="text-xs text-stone-600 max-w-xs mx-auto">
+                    {resetSuccessMessage} Your new password has been applied.
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
