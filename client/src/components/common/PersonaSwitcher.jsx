@@ -10,7 +10,7 @@ export const PersonaSwitcher = () => {
   return (
     <div className="fixed bottom-20 sm:bottom-6 left-3 sm:left-6 z-40">
       {isOpen && (
-        <div className="mb-2 w-68 sm:w-72 rounded-3xl clay-card bg-white p-3 sm:p-3.5 shadow-2xl border border-white">
+        <div className="mb-2 w-68 sm:w-72 rounded-3xl clay-card bg-white p-3 sm:p-3.5 shadow-2xl">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-stone-100 text-xs font-bold text-[#1c1d22]">
             <div className="flex items-center gap-1.5">
               <UserCheck className="w-4 h-4 text-[#d93829]" />

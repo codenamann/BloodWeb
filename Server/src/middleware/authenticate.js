@@ -1,8 +1,10 @@
-import env from "../config/env";
-import AppError from "./appError";
+import env from "../config/env.js";
+import AppError from "./appError.js";
+import jwt from "jsonwebtoken";
 
 export default function authenticate(req, res, next) {
     const authHeader = req.headers['authorization'];
+
     if (!authHeader) throw new AppError('Authorization header not found', 401);
 
     const [authScheme, token] = authHeader.split(' ');

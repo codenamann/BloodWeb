@@ -7,7 +7,7 @@ export const AboutSection = () => {
   return (
     <section
       id="mission"
-      className="relative py-16 overflow-hidden scroll-mt-20"
+      className="relative py-12 sm:py-16 overflow-hidden scroll-mt-20"
     >
       {/* Ambient Floating Clay Spheres */}
       <div
@@ -15,7 +15,7 @@ export const AboutSection = () => {
         aria-hidden="true"
       />
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
 
         {/* 2-Column Split: Narrative on Left, Quote Card on Right */}
@@ -41,7 +41,7 @@ export const AboutSection = () => {
               Why BloodWeb exists.
             </h2>
 
-            <p className="text-md text-[#575965] text-justify font-medium leading-relaxed max-w-xl">
+            <p className="text-sm sm:text-base text-[#575965] font-medium leading-relaxed max-w-xl">
               Finding blood during an emergency can involve scattered contacts,
               social media posts, and manual coordination. BloodWeb aims to
               bring those processes into one real-time platform where blood
@@ -57,7 +57,7 @@ export const AboutSection = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className=""
           >
-            <Card className="relative px-18 py-10 rounded-[32px] bg-white flex justify-between shadow-sm group hover:-translate-y-0.5 transition-transform duration-200">
+            <Card className="relative px-6 sm:px-12 lg:px-16 py-8 sm:py-10 rounded-[32px] bg-white flex justify-between shadow-sm group hover:-translate-y-0.5 transition-transform duration-200">
               {/* Top Quote Mark */}
               <div
                 className="absolute text-7xl left-5 top-5 font-black text-[#d93829]/20 font-serif select-none -mb-1"

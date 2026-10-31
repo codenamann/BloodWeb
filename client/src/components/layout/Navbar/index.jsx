@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ChevronRight } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import ClayLogo from '../../ClayAssets/ClayLogo';
 import { Button } from '../../ui';
+import { useAuth } from '../../../context/AuthContext';
 import NavLinks from './NavLinks';
 import MobileDrawer from './MobileDrawer';
 
@@ -11,6 +12,8 @@ export const Navbar = ({ onRequestBlood, onDonate }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSession, setActiveSession] = useState('hero');
   const navigate = useNavigate();
+  const { currentUser, isAuthenticated } = useAuth();
+  const isLoggedIn = !!currentUser || isAuthenticated;
 
   const navLinks = [
     { name: 'Home', href: '#hero' },
@@ -66,7 +69,7 @@ export const Navbar = ({ onRequestBlood, onDonate }) => {
 
   return (
     <header className="sticky top-0 z-40 select-none w-full bg-[#f6f1eb]/95 backdrop-blur-md border-b border-slate-300/40 transition-all">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 sm:h-20 items-center justify-between">
           {/* Brand Logo */}
           <ClayLogo size="lg" />
@@ -80,31 +83,57 @@ export const Navbar = ({ onRequestBlood, onDonate }) => {
 
           {/* Right Action Buttons */}
           <div className="hidden sm:flex items-center gap-3">
-            <Button
-              variant="cream"
-              size="default"
-              onClick={() => navigate('/login')}
-            >
-              Log In
-            </Button>
-            <Button
-              variant="crimson"
-              size="default"
-              onClick={() => navigate('/register')}
-            >
-              Get Started
-            </Button>
+            {isLoggedIn ? (
+              <Button
+                variant="crimson"
+                size="default"
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-1.5 rounded-2xl! shadow-md"
+              >
+                <span>Go to app</span>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="cream"
+                  size="default"
+                  onClick={() => navigate('/login')}
+                >
+                  Log In
+                </Button>
+                <Button
+                  variant="crimson"
+                  size="default"
+                  onClick={() => navigate('/register')}
+                >
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle Button */}
           <div className="flex items-center gap-2 sm:hidden">
-            <Button
-              variant="crimson"
-              size="sm"
-              onClick={() => navigate('/register')}
-            >
-              Get Started
-            </Button>
+            {isLoggedIn ? (
+              <Button
+                variant="crimson"
+                size="default"
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-1 shadow-md py-2! pr-3"
+              >
+                <span>Go to app</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            ) : (
+              <Button
+                variant="crimson"
+                size="sm"
+                onClick={() => navigate('/register')}
+              >
+                Get Started
+              </Button>
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-xl clay-btn-cream text-slate-700 cursor-pointer"
@@ -125,7 +154,12 @@ export const Navbar = ({ onRequestBlood, onDonate }) => {
         {mobileMenuOpen && (
           <MobileDrawer
             links={navLinks}
+            isLoggedIn={isLoggedIn}
             onNavClick={handleNavClick}
+            onGoToApp={() => {
+              setMobileMenuOpen(false);
+              navigate('/dashboard');
+            }}
             onLogin={() => {
               setMobileMenuOpen(false);
               navigate('/login');

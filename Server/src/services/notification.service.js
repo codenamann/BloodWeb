@@ -1,6 +1,8 @@
 import env from "../config/env.js";
 import Notification from "../models/Notification.model.js"
+import bloodRequestTemplate from "../templates/bloodRequest.template.js";
 import { sendEmail } from "../utils/email.js";
+import logger from "../utils/logger.js";
 
 const FRONTEND_URL = env.app.frontendUrl;
 
@@ -8,7 +10,7 @@ export async function notifyDonors(donors, request) {
     const notification = buildNotification(request);
     const emailBody = buildBloodRequestEmail(request);
 
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
         donors.map((donor) =>
             sendNotification(
                 {
@@ -23,6 +25,13 @@ export async function notifyDonors(donors, request) {
             )
         )
     );
+
+    // Log any errors from email/notification delivery
+    results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+            logger.error(`[NOTIFICATION ERROR] Failed to notify donor ${donors[index].email}: ${result.reason}`, { error: result.reason });
+        }
+    });
 }
 
 export async function sendNotification(notification, emailOptions) {

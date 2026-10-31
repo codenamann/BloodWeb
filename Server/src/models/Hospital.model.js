@@ -73,9 +73,6 @@ const hospitalSchema = new mongoose.Schema({
 
 // ─── Indexes ──────────────────────────────────────────────────────────────────
 
-// Primary deduplication guard. Sparse allows multiple null osmIds (MANUAL entries).
-hospitalSchema.index({ osmId: 1 }, { unique: true, sparse: true });
-
 // Autocomplete queries always filter by city. This is the primary lookup path. 
 hospitalSchema.index({ city: 1 });
 
@@ -92,7 +89,18 @@ hospitalSchema.index({ name: "text" });
 hospitalSchema.statics.findOrCreateByOsmId = async function (data) {
     const existing = await this.findOne({ osmId: data.osmId });
     if (existing) return existing;
-    return this.create(data);
+
+    try {
+        return await this.create(data);
+    } catch (error) {
+        // Another request may have created the same OSM hospital
+        // between findOne() and create().
+        if (error.code === 11000) {
+            return this.findOne({ osmId: data.osmId });
+        }
+
+        throw error;
+    }
 }
 
 const Hospital = mongoose.model("Hospital", hospitalSchema);

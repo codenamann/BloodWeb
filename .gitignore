@@ -79,12 +79,13 @@ playwright-report/
 cypress/videos/
 cypress/screenshots/
 
-# ─── Database / Data dumps ────────────────────────────────────────────────────
+# ─── Database / Data dumps / Uploads ──────────────────────────────────────────
 *.sql
 *.sqlite
 *.sqlite3
 *.db
 dumps/
+Server/public/uploads/
 
 # ─── Certificates / Keys ──────────────────────────────────────────────────────
 *.pem

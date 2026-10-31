@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Heart, Shield, Award, Check, Sparkles, Droplets } from 'lucide-react';
 import {
   Dialog,
@@ -99,20 +100,29 @@ export const DonateModal = ({ isOpen, onClose }) => {
                   Your Blood Group
                 </label>
                 <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 sm:gap-2">
-                  {bloodTypes.map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, bloodGroup: type })}
-                      className={`h-9 sm:h-10 rounded-xl font-extrabold text-xs sm:text-sm transition-all cursor-pointer ${
-                        formData.bloodGroup === type
-                          ? 'clay-btn-crimson text-white scale-105'
-                          : 'clay-btn-cream text-slate-700'
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
+                  {bloodTypes.map((type) => {
+                    const isActive = formData.bloodGroup === type;
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, bloodGroup: type })}
+                        className={`relative h-9 sm:h-10 rounded-xl font-extrabold text-xs sm:text-sm transition-all cursor-pointer hover:opacity-90 ${
+                          isActive ? 'text-white scale-105' : 'clay-btn-cream text-slate-700'
+                        }`}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="donate-modal-blood-group"
+                            className="absolute inset-0 clay-btn-crimson text-white transition-none!"
+                            style={{ borderRadius: 12 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+                          />
+                        )}
+                        <span className="relative z-10">{type}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -183,7 +193,7 @@ export const DonateModal = ({ isOpen, onClose }) => {
             {/* Tactile Clay Donor Card */}
             <Card
               variant="elevated"
-              className="p-4 sm:p-6 bg-gradient-to-br from-white via-[#faf6f0] to-[#f4ebe0] text-left border border-white relative overflow-hidden"
+              className="p-4 sm:p-6 bg-gradient-to-br from-white via-[#faf6f0] to-[#f4ebe0] text-left relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#d93829]/10 rounded-full blur-2xl pointer-events-none" />
               

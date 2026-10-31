@@ -18,10 +18,24 @@ import { resendOtp } from '../../api/auth.api.js';
 export const VerifyOtpPage = () => {
   const { verifyOtp } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const { email, expiresAt: initialExpiresAt } = JSON.parse(
-    sessionStorage.getItem('pendingVerification')
-  );
+  const pendingData = (() => {
+    try {
+      return JSON.parse(sessionStorage.getItem('pendingVerification') || 'null');
+    } catch {
+      return null;
+    }
+  })();
+
+  const email = pendingData?.email || location.state?.email || '';
+  const initialExpiresAt = pendingData?.expiresAt || Date.now() + 5 * 60 * 1000;
+
+  useEffect(() => {
+    if (!email) {
+      navigate('/login', { replace: true });
+    }
+  }, [email, navigate]);
 
   const [expiresAt, setExpiresAt] = useState(initialExpiresAt);
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);

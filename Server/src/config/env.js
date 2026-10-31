@@ -85,6 +85,15 @@ const env = {
         windowMs: optionalInt('RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000), // 15 minutes
         max: optionalInt('RATE_LIMIT_MAX', 100),
     },
+
+    storage: {
+        provider: optional('DOCUMENT_STORAGE_PROVIDER', 'cloudinary'),
+        cloudinary: {
+            cloudName: optional('CLOUDINARY_CLOUD_NAME', ''),
+            apiKey: optional('CLOUDINARY_API_KEY', ''),
+            apiSecret: optional('CLOUDINARY_API_SECRET', ''),
+        }
+    }
 };
 
 export default env;

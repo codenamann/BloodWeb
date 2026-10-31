@@ -21,6 +21,7 @@ const locationSchema = new mongoose.Schema(
     state: { type: String, required: true, trim: true },
     city: { type: String, required: true, trim: true, lowercase: true },
     area: { type: String, required: true, trim: true },
+    pincode: { type: String, required: true, trim: true },
 
     // Optional yet recommended for better location accuracy.
     coordinates: {
@@ -66,6 +67,22 @@ const userSchema = new mongoose.Schema(
         message: '{VALUE} is not a valid blood group',
       },
       default: null,
+    },
+
+    dob: {
+      type: Date,
+      default: null,
+    },
+
+    pendingDob: {
+      type: Date,
+      default: null,
+    },
+
+    dobUpdateStatus: {
+      type: String,
+      enum: ['none', 'pending', 'approved', 'rejected'],
+      default: 'none',
     },
 
     location: {

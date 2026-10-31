@@ -1,321 +1,479 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Droplets,
+  ArrowLeft,
   Building,
   MapPin,
   Clock,
   Heart,
-  MessageSquare,
+  Droplets,
   ShieldCheck,
   CheckCircle2,
   Users,
   AlertCircle,
   FileText,
-  PhoneCall,
-  ArrowLeft,
-  ArrowRight,
-  ExternalLink,
+  Phone,
+  MessageSquare,
+  Share2,
+  Trash2,
+  Check,
   UserCheck,
+  ChevronRight,
+  ExternalLink,
+  Info,
 } from 'lucide-react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useBloodRequests } from '../../context/BloodRequestContext';
 import { isDonorCompatible, getCompatibleDonorGroups } from '../../utils/compatibility';
-import AppNavbar from '../../components/layout/AppNavbar';
-import PersonaSwitcher from '../../components/common/PersonaSwitcher';
+
 import ClayAvatar from '../../components/ClayAssets/ClayAvatar';
+import ClayBloodDrop from '../../components/ClayAssets/ClayBloodDrop';
+import { ClayHandsHeart, ClayCalendar } from '../../components/ClayAssets/ClayIllustrations';
+import { HospitalDocumentPreview } from '../../components/HospitalDocumentPreview';
 
 export const RequestDetailPage = () => {
   const { id } = useParams();
   const { currentUser } = useAuth();
-  const { getRequestById, getMatchingDonorsForRequest, volunteerForRequest, updateVolunteerStatus } = useBloodRequests();
+  const {
+    getRequestById,
+    volunteerForRequest,
+    updateVolunteerStatus,
+    updateRequestStatus,
+  } = useBloodRequests();
   const navigate = useNavigate();
+
+  const [activeTab, setActiveTab] = useState('OVERVIEW'); // 'OVERVIEW' | 'VOLUNTEERS' | 'UPDATES' | 'COORDINATION'
+  const [shareFeedback, setShareFeedback] = useState(false);
 
   const request = getRequestById(id);
 
   if (!request) {
     return (
-      <div className="min-h-screen bg-[#f6f1eb] text-[#1c1d22]">
-        <AppNavbar />
-        <div className="max-w-2xl mx-auto pt-20 text-center space-y-4 px-4">
-          <Droplets className="w-12 h-12 text-slate-400 mx-auto" />
-          <h2 className="text-xl sm:text-2xl font-black">Blood Request Not Found</h2>
-          <Link to="/requests" className="clay-btn-crimson px-6 py-2.5 text-xs font-bold inline-block">
+      <AppShell activeNav="My Requests">
+        <div className="clay-card p-12 text-center bg-white space-y-4 max-w-xl mx-auto my-12">
+          <Droplets className="w-12 h-12 text-stone-300 mx-auto" />
+          <h2 className="text-xl font-black text-stone-900">Blood Request Not Found</h2>
+          <p className="text-xs text-stone-500">The request may have been removed or does not exist.</p>
+          <Link to="/requests" className="clay-btn-crimson px-5 py-2.5 text-xs font-bold inline-block">
             Return to Requests
           </Link>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   const isRequester = request.createdBy?._id === currentUser?._id;
   const isCompatible = currentUser?.bloodGroup && isDonorCompatible(currentUser.bloodGroup, request.patientBloodGroup);
-  const alreadyVolunteered = request.responses?.some((resp) => resp.donorId === currentUser?._id);
-  const compatibleGroups = getCompatibleDonorGroups(request.patientBloodGroup);
-  const matchingDonors = getMatchingDonorsForRequest(request);
+  const myResponse = request.responses?.find((resp) => resp.donorId === currentUser?._id);
+  const alreadyVolunteered = !!myResponse;
+  const acceptedVolunteers = request.responses?.filter((r) => r.status === 'ACCEPTED') || [];
+  const fulfilledUnits = acceptedVolunteers.length;
+  const unitsNeeded = request.unitsNeeded || 1;
+  const remainingUnits = Math.max(0, unitsNeeded - fulfilledUnits);
+  const isTerminal = ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(request.status);
 
   const handleVolunteer = () => {
     volunteerForRequest(request._id, currentUser);
-    navigate(`/coordination/${request._id}`);
+    setActiveTab('VOLUNTEERS');
+  };
+
+  const handleStatusChange = (responseId, newStatus) => {
+    updateVolunteerStatus(request._id, responseId, newStatus);
+  };
+
+  const handleCancelRequest = () => {
+    if (window.confirm('Are you sure you want to cancel this emergency request?')) {
+      updateRequestStatus(request._id, 'CANCELLED');
+    }
+  };
+
+  const handleShare = () => {
+    navigator.clipboard?.writeText(window.location.href);
+    setShareFeedback(true);
+    setTimeout(() => setShareFeedback(false), 3000);
+  };
+
+  const getVolunteerBadge = (status) => {
+    switch (status) {
+      case 'ACCEPTED':
+        return 'bg-emerald-100 text-emerald-800';
+      case 'BACKUP':
+        return 'bg-blue-100 text-blue-900';
+      case 'WITHDRAWN':
+        return 'bg-stone-100 text-stone-500';
+      default:
+        return 'bg-amber-100 text-amber-900';
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f1eb] text-[#1c1d22] font-sans pb-24 sm:pb-16">
-      <AppNavbar />
-      <PersonaSwitcher />
-
-      <main className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 pt-6 sm:pt-8 space-y-6 sm:space-y-8">
+    <div className="space-y-6">
         
-        {/* Back Button */}
-        <Link
-          to="/requests"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#575965] hover:text-[#1c1d22] transition-colors p-2 rounded-xl clay-btn-cream"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Requests</span>
-        </Link>
+        {/* ========================================================================= */}
+        {/* 1. TOP HEADER & BREADCRUMB */}
+        {/* ========================================================================= */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <Link
+              to="/requests"
+              className="inline-flex items-center gap-1.5 text-xs font-black text-stone-500 hover:text-stone-900 transition-colors mb-2"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to My Requests</span>
+            </Link>
+            
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-2xl sm:text-3xl font-black text-[#1c1d22] tracking-tight">
+                Request Details
+              </h1>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
+                request.status === 'ACTIVE'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : request.status === 'CANCELLED'
+                  ? 'bg-red-100 text-[#d93829]'
+                  : 'bg-stone-100 text-stone-700'
+              }`}>
+                {request.status?.replace('_', ' ')}
+              </span>
+            </div>
+            
+            <p className="text-xs text-stone-500 font-medium mt-1">
+              Request ID: <span className="font-bold text-stone-800">#{request._id}</span> • Created on {new Date(request.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
+
+          {/* Requester Actions / Donor Actions */}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            {isRequester && !isTerminal && (
+              <button
+                onClick={handleCancelRequest}
+                className="px-4 py-2 rounded-2xl bg-red-50 hover:bg-red-100 text-[#d93829] text-xs font-black flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Cancel Request</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => navigate(`/coordination/${request._id}`)}
+              className="clay-btn-crimson px-4 py-2.5 text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Coordination Room</span>
+            </button>
+          </div>
+        </div>
 
         {/* ========================================================================= */}
-        {/* 1. TOP MAIN REQUEST HERO BANNER */}
+        {/* 2. MAIN REQUEST HERO CARD */}
         {/* ========================================================================= */}
-        <div className="clay-card-elevated p-5 sm:p-8 bg-white shadow-2xl border border-white space-y-5 sm:space-y-6">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 pb-5 sm:pb-6 border-b border-stone-100">
+        <div className="clay-card p-6 sm:p-8 bg-white/95 shadow-sm space-y-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-stone-100">
             
-            <div className="flex items-start gap-3.5 sm:gap-4">
-              <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl clay-card-crimson flex flex-col items-center justify-center text-white shrink-0 shadow-lg">
-                <span className="text-xl sm:text-3xl font-black leading-none">{request.patientBloodGroup}</span>
-                <span className="text-[8px] sm:text-[10px] font-bold opacity-80 mt-0.5">TYPE</span>
+            {/* Blood Type & Units */}
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-red-50 text-[#d93829] font-black text-2xl sm:text-3xl flex flex-col items-center justify-center shrink-0 shadow-xs border border-red-100">
+                <span>{request.patientBloodGroup}</span>
+                <span className="text-[8px] font-bold text-stone-400 uppercase">TYPE</span>
               </div>
 
               <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <span className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider ${
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                     request.urgency === 'CRITICAL' ? 'bg-red-100 text-[#d93829]' : 'bg-amber-100 text-amber-900'
                   }`}>
-                    {request.urgency} Urgency
+                    {request.urgency} URGENCY
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] sm:text-xs font-bold">
-                    Status: {request.status}
+                  <span className="text-xs text-stone-400 font-bold">
+                    Needed by <span className="text-stone-800 font-extrabold">{request.neededBy}</span>
                   </span>
                 </div>
-
-                <h1 className="text-lg sm:text-3xl font-black text-[#1c1d22]">
-                  Requirement: {request.unitsNeeded} Units of {request.patientBloodGroup} Blood
-                </h1>
-
-                <p className="text-xs sm:text-sm text-[#575965] font-semibold">
-                  Needed: <strong className="text-[#1c1d22]">{request.neededBy}</strong> • ID #{request._id}
+                <h2 className="text-xl sm:text-2xl font-black text-stone-900">
+                  {request.unitsNeeded} {request.unitsNeeded === 1 ? 'Unit' : 'Units'} Needed
+                </h2>
+                <p className="text-xs text-stone-500 font-medium flex items-center gap-1">
+                  <Building className="w-3.5 h-3.5 text-[#d93829]" />
+                  <span>For a patient at <strong className="text-stone-800">{request.hospitalName}</strong></span>
                 </p>
               </div>
             </div>
 
-            {/* Primary Action Button */}
-            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
-              <button
-                onClick={() => navigate(`/coordination/${request._id}`)}
-                className="clay-btn-crimson w-full sm:w-auto px-5 sm:px-6 py-3 sm:py-3.5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-xl cursor-pointer"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Enter Live Coordination Room</span>
-              </button>
+            {/* 3D Clay Hands Illustration in Hero */}
+            <div className="hidden md:flex shrink-0">
+              <ClayHandsHeart size={140} />
             </div>
 
           </div>
 
-          {/* Key Facts Strip */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs">
-            
-            {/* Hospital Fact */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#faf7f2] border border-stone-200/70 space-y-1">
-              <div className="flex items-center gap-2 font-black text-[#1c1d22]">
-                <Building className="w-4 h-4 text-slate-400" />
-                <span>Hospital Location</span>
-              </div>
-              <p className="font-extrabold text-[#1c1d22] truncate">{request.hospitalName}</p>
-              <p className="text-[#747682] truncate">{request.hospitalAddress}</p>
-            </div>
-
-            {/* Requester Profile */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#faf7f2] border border-stone-200/70 space-y-1">
-              <div className="flex items-center gap-2 font-black text-[#1c1d22]">
-                <UserCheck className="w-4 h-4 text-slate-400" />
-                <span>Requester Contact</span>
-              </div>
-              <p className="font-extrabold text-[#1c1d22]">{request.createdBy?.name}</p>
-              <p className="text-[#747682]">{request.createdBy?.phone} • Verified Kin</p>
-            </div>
-
-            {/* Compatible Groups */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#faf7f2] border border-stone-200/70 space-y-1">
-              <div className="flex items-center gap-2 font-black text-[#1c1d22]">
-                <Droplets className="w-4 h-4 text-[#d93829]" />
-                <span>Eligible Donor Groups</span>
-              </div>
-              <div className="flex flex-wrap gap-1 pt-1">
-                {compatibleGroups.map((g) => (
-                  <span key={g} className="px-2 py-0.2 rounded-md bg-white text-[#d93829] font-black text-[11px] sm:text-xs border border-red-200">
-                    {g}
-                  </span>
-                ))}
-              </div>
-            </div>
-
+          {/* Navigation Tabs Bar */}
+          <div className="flex items-center gap-2 border-b border-stone-100 pb-2 overflow-x-auto">
+            {[
+              { id: 'OVERVIEW', label: 'Overview' },
+              { id: 'VOLUNTEERS', label: `Volunteers (${request.responses?.length || 0})` },
+              { id: 'COORDINATION', label: 'Coordination Room' },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    if (tab.id === 'COORDINATION') {
+                      navigate(`/coordination/${request._id}`);
+                    } else {
+                      setActiveTab(tab.id);
+                    }
+                  }}
+                  className={`relative px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap hover:opacity-90 ${
+                    isActive ? 'text-white' : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="request-detail-tab"
+                      className="absolute inset-0 clay-btn-crimson text-white shadow-xs transition-none!"
+                      style={{ borderRadius: 12 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+                    />
+                  )}
+                  <span className="relative z-10">{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
 
-          {request.patientCondition && (
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200 text-xs text-amber-950 font-medium">
-              <strong>Medical Reason:</strong> {request.patientCondition}
-            </div>
-          )}
-        </div>
+          {/* ======================================================================= */}
+          {/* TAB CONTENT: OVERVIEW */}
+          {/* ======================================================================= */}
+          {activeTab === 'OVERVIEW' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Left 2-Cols: Info Cards */}
+              <div className="lg:col-span-2 space-y-4">
+                
+                {/* Hospital Information Card */}
+                <div className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-black text-stone-900 uppercase tracking-wider">
+                      <Building className="w-4 h-4 text-[#d93829]" />
+                      <span>Hospital Information</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                      Verified Center
+                    </span>
+                  </div>
+                  <div className="text-sm font-black text-stone-900">{request.hospitalName}</div>
+                  <p className="text-xs text-stone-500 font-medium">{request.hospitalAddress || 'Bengaluru, KA'}</p>
+                </div>
 
-        {/* ========================================================================= */}
-        {/* 2. DONOR PERSPECTIVE VOLUNTEER CTA (If User is Donor & Not Creator) */}
-        {/* ========================================================================= */}
-        {!isRequester && (
-          <div className="clay-card p-5 sm:p-8 bg-gradient-to-r from-red-50/80 via-white to-red-50/80 border border-red-200 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
-            <div className="space-y-1.5 text-left">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-100 text-[#d93829] text-[10px] sm:text-xs font-black">
-                <Heart className="w-3.5 h-3.5 fill-[#d93829]" />
-                <span>Donor Action Center</span>
-              </div>
-              <h3 className="text-base sm:text-xl font-black text-[#1c1d22]">
-                {alreadyVolunteered ? "You are an active volunteer for this request!" : isCompatible ? "Your blood is compatible with this emergency!" : "You can share or coordinate this requirement"}
-              </h3>
-              <p className="text-xs text-[#575965] font-medium max-w-xl">
-                {alreadyVolunteered
-                  ? "You have already joined this coordination group. Enter the live room to coordinate arrival with the hospital ward."
-                  : "Volunteering notifies the patient's family immediately and unlocks the shared coordination room."}
-              </p>
-            </div>
+                {/* Request Details & Requester Note */}
+                <div className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/80 space-y-3">
+                  <div className="text-xs font-black text-stone-900 uppercase tracking-wider">
+                    Clinical Context & Instructions
+                  </div>
+                  <p className="text-xs text-stone-700 font-medium leading-relaxed bg-white p-3 rounded-xl border border-stone-100 italic">
+                    "{request.patientCondition || 'Emergency blood requirement for surgery.'}"
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <span className="text-stone-500 font-medium">Request Creator:</span>
+                    <span className="font-bold text-stone-800">{request.createdBy?.name || 'Requester'}</span>
+                  </div>
+                </div>
 
-            {alreadyVolunteered ? (
-              <button
-                onClick={() => navigate(`/coordination/${request._id}`)}
-                className="clay-btn-crimson w-full md:w-auto px-6 py-3 text-xs sm:text-sm font-bold shadow-lg cursor-pointer shrink-0"
-              >
-                Open Coordination Room
-              </button>
-            ) : (
-              <button
-                onClick={handleVolunteer}
-                className="clay-btn-crimson w-full md:w-auto px-6 py-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-xl cursor-pointer shrink-0"
-              >
-                <Heart className="w-4 h-4 fill-white" />
-                <span>Volunteer to Donate Now</span>
-              </button>
-            )}
-          </div>
-        )}
+                {/* Hospital Document Preview */}
+                {request.hospitalDocument && (
+                  <div className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/80 space-y-3">
+                    <div className="text-xs font-black text-stone-900 uppercase tracking-wider">
+                      Supporting Document
+                    </div>
+                    <HospitalDocumentPreview document={request.hospitalDocument} />
+                  </div>
+                )}
 
-        {/* ========================================================================= */}
-        {/* 3. REQUEST RESPONSES & MATCHED DONORS SECTION */}
-        {/* ========================================================================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-          
-          {/* Left Column: Volunteer Responses Received */}
-          <div className="lg:col-span-7 space-y-3.5 sm:space-y-4">
-            <div>
-              <h3 className="text-base sm:text-lg font-black text-[#1c1d22]">Volunteer Responses ({request.responses?.length || 0})</h3>
-              <p className="text-xs text-[#575965] font-medium">Donors who have stepped forward for this request</p>
-            </div>
-
-            {(!request.responses || request.responses.length === 0) ? (
-              <div className="clay-card-flat p-6 sm:p-8 text-center bg-white text-xs text-slate-400 font-medium">
-                No donor responses yet. The system is broadcasting to nearby matching volunteers.
-              </div>
-            ) : (
-              <div className="space-y-2.5 sm:space-y-3">
-                {request.responses.map((resp) => (
-                  <div
-                    key={resp._id}
-                    className="clay-card-flat p-3.5 sm:p-4 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4"
-                  >
-                    <div className="flex items-center gap-3">
-                      <ClayAvatar type={resp.donor?.avatarType || 'alex'} size={44} showBadge={true} badgeColor="green" />
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h4 className="font-extrabold text-xs sm:text-sm text-[#1c1d22]">{resp.donor?.name || 'Verified Donor'}</h4>
-                          <span className="px-1.5 py-0.2 rounded-full bg-red-100 text-[#d93829] text-[9px] sm:text-[10px] font-black">
-                            {resp.donor?.bloodGroup || 'O-'}
-                          </span>
-                        </div>
-                        <div className="text-[11px] sm:text-xs text-[#575965] font-semibold mt-0.5">
-                          {resp.estimatedDistanceKm} km away • ETA {resp.eta}
-                        </div>
-                        <span className={`inline-block mt-0.5 px-2 py-0.2 rounded-md text-[9px] sm:text-[10px] font-black ${
-                          resp.status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          Status: {resp.status}
+                {/* Donor Volunteer Action if not requester */}
+                {!isRequester && (
+                  <div className="p-5 rounded-2xl bg-red-50 border border-red-100 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-black text-stone-900 uppercase tracking-wider">
+                        Donor Response Status
+                      </h4>
+                      {isCompatible && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                          Compatible Donor ({currentUser?.bloodGroup})
                         </span>
-                      </div>
+                      )}
                     </div>
 
-                    {isRequester && (
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        {resp.status !== 'ACCEPTED' && (
-                          <button
-                            onClick={() => updateVolunteerStatus(request._id, resp._id, 'ACCEPTED')}
-                            className="flex-1 sm:flex-none px-3 py-1.5 clay-btn-crimson text-xs font-bold shadow-sm cursor-pointer"
-                          >
-                            Accept Donor
-                          </button>
-                        )}
+                    {alreadyVolunteered ? (
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <div className="text-xs font-black text-emerald-800">
+                            You have volunteered for this request
+                          </div>
+                          <p className="text-[11px] text-stone-600 font-medium">
+                            Status: <strong className="uppercase">{myResponse?.status}</strong> • Coordination is open.
+                          </p>
+                        </div>
                         <button
                           onClick={() => navigate(`/coordination/${request._id}`)}
-                          className="flex-1 sm:flex-none px-3 py-1.5 clay-btn-cream text-xs font-bold cursor-pointer"
+                          className="clay-btn-crimson px-4 py-2 text-xs font-bold shadow-md cursor-pointer"
                         >
-                          Chat
+                          Open Coordination Room
+                        </button>
+                      </div>
+                    ) : !isCompatible && currentUser?.bloodGroup ? (
+                      <div className="flex items-center gap-2.5 p-3 rounded-xl bg-stone-100 text-xs font-semibold text-stone-600 border border-stone-200">
+                        <AlertCircle className="w-4 h-4 text-stone-400 shrink-0" />
+                        <span>Your blood group ({currentUser.bloodGroup}) does not match patient's needed blood group ({request.patientBloodGroup}).</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <p className="text-xs text-stone-600 font-medium">
+                          Can you donate blood for this emergency? Your response connects directly with the requester.
+                        </p>
+                        <button
+                          onClick={handleVolunteer}
+                          className="clay-btn-crimson px-5 py-2.5 text-xs font-black shadow-lg cursor-pointer shrink-0"
+                        >
+                          Volunteer to Donate
                         </button>
                       </div>
                     )}
                   </div>
-                ))}
+                )}
+
               </div>
-            )}
-          </div>
 
-          {/* Right Column: Discovered Matching Donors Network */}
-          <div className="lg:col-span-5 space-y-3.5 sm:space-y-4">
-            <div>
-              <h3 className="text-base sm:text-lg font-black text-[#1c1d22]">Nearby Matching Donors ({matchingDonors.length})</h3>
-              <p className="text-xs text-[#575965] font-medium">Ranked by Proximity (70%) + Reliability (30%)</p>
-            </div>
-
-            <div className="space-y-2.5 sm:space-y-3">
-              {matchingDonors.map((donor) => (
-                <div
-                  key={donor._id}
-                  className="clay-card-flat p-3 bg-white flex items-center justify-between gap-2"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <ClayAvatar type={donor.avatarType} size={38} showBadge={false} />
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-extrabold text-xs text-[#1c1d22]">{donor.name}</span>
-                        <span className="px-1.5 py-0.2 rounded bg-red-100 text-[#d93829] text-[9px] font-black">
-                          {donor.bloodGroup}
-                        </span>
-                      </div>
-                      <div className="text-[10px] sm:text-[11px] text-[#747682] font-semibold">
-                        {donor.distanceKm} km • {donor.totalVolunteers} donations ({Math.round(donor.rankScore * 100)}% match)
-                      </div>
-                    </div>
+              {/* Right 1-Col: Progress Gauge & Quick Actions */}
+              <div className="space-y-4">
+                
+                {/* Progress Gauge */}
+                <div className="p-5 rounded-2xl bg-stone-50/80 border border-stone-200/80 text-center space-y-3">
+                  <div className="text-xs font-black text-stone-900 uppercase tracking-wider text-left">
+                    Request Progress
+                  </div>
+                  
+                  <div className="relative w-28 h-28 mx-auto flex flex-col items-center justify-center rounded-full bg-white shadow-inner border-4 border-red-100">
+                    <span className="text-xl font-black text-stone-900">{fulfilledUnits} / {unitsNeeded}</span>
+                    <span className="text-[9px] font-bold text-stone-400 uppercase">Units Fulfilled</span>
                   </div>
 
-                  <span className="text-[9px] sm:text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md shrink-0">
-                    Ready
-                  </span>
+                  <div className="space-y-1.5 text-xs font-semibold text-stone-600 text-left pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#d93829]" /> Donated Units:</span>
+                      <span className="font-bold text-stone-900">{fulfilledUnits}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-stone-300" /> Units Remaining:</span>
+                      <span className="font-bold text-stone-900">{remainingUnits}</span>
+                    </div>
+                  </div>
                 </div>
-              ))}
+
+                {/* Quick Actions List */}
+                <div className="p-4 rounded-2xl bg-white border border-stone-200/80 space-y-2">
+                  <div className="text-xs font-black text-stone-900 uppercase tracking-wider mb-2">
+                    Quick Actions
+                  </div>
+                  <button
+                    onClick={handleShare}
+                    className="w-full p-2.5 rounded-xl bg-stone-50 hover:bg-stone-100 text-xs font-bold text-stone-700 flex items-center justify-between cursor-pointer transition-colors"
+                  >
+                    <span className="flex items-center gap-2"><Share2 className="w-4 h-4 text-stone-500" /> Share Request</span>
+                    {shareFeedback && <span className="text-[10px] text-emerald-600 font-bold">Link Copied!</span>}
+                  </button>
+                  <button
+                    onClick={() => navigate(`/coordination/${request._id}`)}
+                    className="w-full p-2.5 rounded-xl bg-stone-50 hover:bg-stone-100 text-xs font-bold text-stone-700 flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <MessageSquare className="w-4 h-4 text-[#d93829]" />
+                    <span>Coordination Room</span>
+                  </button>
+                </div>
+
+              </div>
+
             </div>
-          </div>
+          )}
+
+          {/* ======================================================================= */}
+          {/* TAB CONTENT: VOLUNTEERS */}
+          {/* ======================================================================= */}
+          {activeTab === 'VOLUNTEERS' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black text-stone-900">
+                  Volunteers Responded ({request.responses?.length || 0})
+                </h3>
+              </div>
+
+              {!request.responses || request.responses.length === 0 ? (
+                <div className="py-8 text-center text-xs text-stone-400 font-medium">
+                  No volunteers have responded yet. Compatible donors are notified.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {request.responses.map((resp) => {
+                    const isSelf = resp.donorId === currentUser?._id;
+
+                    return (
+                      <div
+                        key={resp._id}
+                        className="p-4 rounded-2xl bg-stone-50/90 border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <ClayAvatar type={resp.donor?.avatarType || 'alex'} size={44} showBadge={false} />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black text-stone-900">
+                                {resp.donor?.name || 'Verified Donor'} {isSelf && '(You)'}
+                              </span>
+                              <span className="px-2 py-0.2 rounded-full bg-red-100 text-[#d93829] text-[10px] font-black">
+                                {resp.donor?.bloodGroup || request.patientBloodGroup}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${getVolunteerBadge(resp.status)}`}>
+                                {resp.status}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-stone-500 font-medium mt-0.5">
+                              Distance: <strong className="text-stone-700">{resp.estimatedDistanceKm || '2.4'} km away</strong> • Responded {new Date(resp.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Status Change Controls for Requester */}
+                        {isRequester && resp.status !== 'WITHDRAWN' && (
+                          <div className="flex items-center gap-2 self-end sm:self-auto">
+                            {resp.status !== 'ACCEPTED' && (
+                              <button
+                                onClick={() => handleStatusChange(resp._id, 'ACCEPTED')}
+                                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer transition-colors shadow-xs"
+                              >
+                                Accept Donor
+                              </button>
+                            )}
+                            {resp.status !== 'BACKUP' && (
+                              <button
+                                onClick={() => handleStatusChange(resp._id, 'BACKUP')}
+                                className="px-3 py-1.5 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold cursor-pointer transition-colors"
+                              >
+                                Set as Backup
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
 
-      </main>
-    </div>
+      </div>
   );
 };
 

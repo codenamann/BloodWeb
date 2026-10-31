@@ -1,43 +1,74 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { loginUser, registerUser, verifyEmail } from '../api/auth.api';
+import {
+  getUserProfile,
+  updatePhone as updatePhoneApi,
+  updateBloodGroup as updateBloodGroupApi,
+  updateDob as updateDobApi,
+  toggleAvailability as toggleAvailabilityApi,
+} from '../api/profile.api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('bloodweb_current_user');
-    if (!saved) return null;
-
-    try {
-      return JSON.parse(saved);
-    } catch (err) {
-      console.error('Error parsing saved user:', err);
-      return null;
-    }
-  });
-
+  const [authLoading, setAuthLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
   const [pendingVerificationEmail, setPendingVerificationEmail] =
     useState(null);
 
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(
-        'bloodweb_current_user',
-        JSON.stringify(currentUser)
-      );
-    } else {
-      localStorage.removeItem('bloodweb_current_user');
-    }
-  }, [currentUser]);
+    const restoreSession = async () => {
+      const token = localStorage.getItem('bloodweb_token');
+      if (!token) {
+        setAuthLoading(false);
+        return;
+      }
+
+      try {
+        const profileRes = await getUserProfile();
+
+        if (profileRes.status === 'success' && profileRes.data?.user) {
+          setCurrentUser(profileRes.data.user);
+        } else {
+          localStorage.removeItem('bloodweb_token');
+          setCurrentUser(null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch profile', err);
+        localStorage.removeItem('bloodweb_token');
+        setCurrentUser(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    restoreSession();
+  }, []);
 
   const login = async (email, password) => {
     const response = await loginUser({ email, password });
-    if (response.status === 'success') {
+    if (
+      response.status === 'success' &&
+      response.data.token &&
+      response.data.user
+    ) {
+      localStorage.setItem('bloodweb_token', response.data.token);
       setCurrentUser(response.data.user);
-      if (response.data.token) {
-        localStorage.setItem('bloodweb_token', response.data.token);
-      }
     }
+
+    getUserProfile()
+      .then((profileRes) => {
+        console.dir(profileRes);
+        if (profileRes.status === 'success' && profileRes.data.user) {
+          setCurrentUser(profileRes.data.user);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to restore session', err);
+        localStorage.removeItem('bloodweb_token');
+        setCurrentUser(null);
+      });
+
     return response;
   };
 
@@ -62,31 +93,67 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    localStorage.removeItem('bloodweb_token');
     setCurrentUser(null);
   };
 
-  // Toggle donor availability
-  const toggleAvailability = (forcedValue) => {
-    if (!currentUser) return;
-    if (!currentUser.bloodGroup || !currentUser.location) {
-      alert(
-        'You must set your blood group and location before enabling availability.'
-      );
-      return;
-    }
-    const nextVal =
-      typeof forcedValue === 'boolean'
-        ? forcedValue
-        : !currentUser.availability;
-    const updated = { ...currentUser, availability: nextVal };
-    setCurrentUser(updated);
+  const updateUser = (userData) => {
+    setCurrentUser(userData);
   };
 
-  // Update profile
-  const updateProfile = (updates) => {
-    if (!currentUser) return;
-    const updated = { ...currentUser, ...updates };
-    setCurrentUser(updated);
+  const updatePhone = async (phone) => {
+    try {
+      const res = await updatePhoneApi(phone);
+      if (res.status === 'success') {
+        setCurrentUser(res.data.user);
+        return res;
+      }
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const updateBloodGroup = async (bloodGroup) => {
+    try {
+      const res = await updateBloodGroupApi(bloodGroup);
+      if (res.status === 'success') {
+        setCurrentUser(res.data.user);
+        return res;
+      }
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const updateDob = async (dob) => {
+    try {
+      const res = await updateDobApi(dob);
+      if (res.status === 'success') {
+        setCurrentUser(res.data.user);
+        return res;
+      }
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const toggleAvailability = async () => {
+    try {
+      const res = await toggleAvailabilityApi();
+      if (res.status === 'success') {
+        setCurrentUser((prev) => ({
+          ...prev,
+          availability: res.data.availability,
+        }));
+        return res;
+      }
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
   };
 
   return (
@@ -94,13 +161,17 @@ export const AuthProvider = ({ children }) => {
       value={{
         currentUser,
         isAuthenticated: !!currentUser,
+        authLoading,
         login,
         register,
         verifyOtp,
         logout,
-        toggleAvailability,
-        updateProfile,
         pendingVerificationEmail,
+        updateUser,
+        updatePhone,
+        updateBloodGroup,
+        updateDob,
+        toggleAvailability,
       }}
     >
       {children}

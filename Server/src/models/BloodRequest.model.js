@@ -78,12 +78,50 @@ const bloodRequestSchema = new mongoose.Schema(
 
 
         // ── Legitimacy ────────────────────────────────────────────────────────────
-        // Optional hospital document (doctor's note, prescription, admission slip).
-        // Uploaded by requester. Stored as a URL to cloud storage.
-        // Visible to all room participants to reduce fake requests.
-        hospitalDocument: {
-            type: String, // file URL
+        patientCondition: {
+            type: String,
             default: null,
+        },
+
+        hospitalDocument: {
+            url: {
+                type: String,
+                required: [true, 'Document URL is required'],
+            },
+            storageKey: {
+                type: String,
+                required: [true, 'Storage key is required'],
+            },
+            originalName: {
+                type: String,
+                required: [true, 'Original file name is required'],
+            },
+            mimeType: {
+                type: String,
+                enum: [
+                    'application/pdf',
+                    'image/jpeg',
+                    'image/png',
+                ],
+                required: [true, 'MIME type is required'],
+            },
+            documentType: {
+                type: String,
+                enum: [
+                    'PDF',
+                    'IMAGE',
+                ],
+                required: [true, 'Document type is required'],
+            },
+            size: {
+                type: Number,
+                required: [true, 'File size is required'],
+                min: [1, 'File size must be greater than 0'],
+            },
+            uploadedAt: {
+                type: Date,
+                default: Date.now,
+            },
         },
 
         // ── Ownership ─────────────────────────────────────────────────────────────

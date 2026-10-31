@@ -1,23 +1,44 @@
 import Hospital from "../models/Hospital.model.js";
 import { searchOverpass } from "../utils/overpass.js";
 
-export async function searchHospitals(query, city) {
-    const local = await Hospital.find({
+export async function searchHospitals(query, city, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+
+    let local = await Hospital.find({
         city,
         name: { $regex: query, $options: "i" }
-    }).limit(10).lean();
+    })
+        .sort({ _id: 1 })
+        .skip(skip)
+        .limit(limit + 1)
+        .lean();
 
-    if (local.length > 0) return local;
+    if (local.length > 0 || page > 1) {
+        const hasMore = local.length > limit;
+        if (hasMore) local.pop();
+        return { hospitals: local, pagination: { page, limit, hasMore } };
+    }
 
     const osmResults = await searchOverpass(city);
-    if (!osmResults?.length) return [];
+    if (!osmResults?.length) {
+        return { hospitals: [], pagination: { page, limit, hasMore: false } };
+    }
 
-    await Promise.all(osmResults.map(saveOsmHospital));
+    await Promise.allSettled(osmResults.map(saveOsmHospital));
 
-    const regex = new RegExp(query, 'i');
-    return osmResults
-        .filter((h) => regex.test(h.name))
-        .slice(0, 10);
+    local = await Hospital.find({
+        city,
+        name: { $regex: query, $options: "i" }
+    })
+        .sort({ _id: 1 })
+        .skip(skip)
+        .limit(limit + 1)
+        .lean();
+
+    const hasMore = local.length > limit;
+    if (hasMore) local.pop();
+
+    return { hospitals: local, pagination: { page, limit, hasMore } };
 }
 
 export async function getAllHospitals(city) {

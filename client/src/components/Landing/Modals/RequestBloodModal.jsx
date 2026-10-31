@@ -104,20 +104,29 @@ export const RequestBloodModal = ({ isOpen, onClose, onSelectDonor }) => {
                 Required Blood Group
               </label>
               <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 sm:gap-2">
-                {bloodTypes.map((type) => (
-                  <button
-                    type="button"
-                    key={type}
-                    onClick={() => setBloodType(type)}
-                    className={`h-10 sm:h-11 rounded-xl font-extrabold text-xs sm:text-sm transition-all cursor-pointer ${
-                      bloodType === type
-                        ? 'clay-btn-crimson text-white scale-105 shadow-md'
-                        : 'clay-btn-cream text-slate-700 hover:text-slate-900'
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
+                {bloodTypes.map((type) => {
+                  const isActive = bloodType === type;
+                  return (
+                    <button
+                      type="button"
+                      key={type}
+                      onClick={() => setBloodType(type)}
+                      className={`relative h-10 sm:h-11 rounded-xl font-extrabold text-xs sm:text-sm transition-all cursor-pointer hover:opacity-90 ${
+                        isActive ? 'text-white scale-105' : 'clay-btn-cream text-slate-700 hover:text-slate-900'
+                      }`}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="request-modal-blood-group"
+                          className="absolute inset-0 clay-btn-crimson text-white shadow-md transition-none!"
+                          style={{ borderRadius: 12 }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+                        />
+                      )}
+                      <span className="relative z-10">{type}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -128,20 +137,29 @@ export const RequestBloodModal = ({ isOpen, onClose, onSelectDonor }) => {
                   Units Needed
                 </label>
                 <div className="flex items-center gap-2 sm:gap-3">
-                  {[1, 2, 3, 4].map((num) => (
-                    <button
-                      type="button"
-                      key={num}
-                      onClick={() => setUnits(num)}
-                      className={`flex-1 h-9 sm:h-10 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
-                        units === num
-                          ? 'clay-btn-crimson text-white'
-                          : 'clay-btn-cream text-slate-700'
-                      }`}
-                    >
-                      {num} {num === 1 ? 'Unit' : 'Units'}
-                    </button>
-                  ))}
+                  {[1, 2, 3, 4].map((num) => {
+                    const isActive = units === num;
+                    return (
+                      <button
+                        type="button"
+                        key={num}
+                        onClick={() => setUnits(num)}
+                        className={`relative flex-1 h-9 sm:h-10 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer hover:opacity-90 ${
+                          isActive ? 'text-white' : 'clay-btn-cream text-slate-700'
+                        }`}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="request-modal-units"
+                            className="absolute inset-0 clay-btn-crimson text-white transition-none!"
+                            style={{ borderRadius: 12 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+                          />
+                        )}
+                        <span className="relative z-10">{num} {num === 1 ? 'Unit' : 'Units'}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

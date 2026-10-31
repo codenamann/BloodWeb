@@ -1,10 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { ChevronRight } from 'lucide-react';
 import { Button } from '../../ui';
 
 export const MobileDrawer = ({
   links,
+  isLoggedIn,
   onNavClick,
+  onGoToApp,
   onLogin,
   onGetStarted,
 }) => (
@@ -23,26 +26,41 @@ export const MobileDrawer = ({
           className="text-sm font-bold text-[#1c1d22] py-2.5 px-3 rounded-xl hover:bg-white flex items-center justify-between transition-colors"
         >
           <span>{link.name}</span>
-          {link.name === 'Home' && <span className="w-2 h-2 rounded-full bg-[#d93829]" />}
+          {link.name === 'Home' && (
+            <span className="w-2 h-2 rounded-full bg-[#d93829]" />
+          )}
         </a>
       ))}
     </nav>
 
     <div className="pt-3 border-t border-stone-200/60 flex flex-col gap-2.5">
-      <Button
-        variant="cream"
-        onClick={onLogin}
-        className="w-full py-3 text-xs sm:text-sm font-bold"
-      >
-        Log in
-      </Button>
-      <Button
-        variant="crimson"
-        onClick={onGetStarted}
-        className="w-full py-3 text-xs sm:text-sm font-bold shadow-md"
-      >
-        Get Started
-      </Button>
+      {isLoggedIn ? (
+        <Button
+          variant="crimson"
+          onClick={onGoToApp}
+          className="w-full py-3 text-xs sm:text-sm font-bold shadow-md flex items-center justify-center gap-1.5"
+        >
+          <span>Go to app</span>
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      ) : (
+        <>
+          <Button
+            variant="cream"
+            onClick={onLogin}
+            className="w-full py-3 text-xs sm:text-sm font-bold"
+          >
+            Log in
+          </Button>
+          <Button
+            variant="crimson"
+            onClick={onGetStarted}
+            className="w-full py-3 text-xs sm:text-sm font-bold shadow-md"
+          >
+            Get Started
+          </Button>
+        </>
+      )}
     </div>
   </motion.div>
 );

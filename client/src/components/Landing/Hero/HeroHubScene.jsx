@@ -6,9 +6,9 @@ import HeroFloatingCard from './HeroFloatingCard';
 
 export const HeroHubScene = () => {
   return (
-    <div className="relative w-full flex justify-center">
-      {/* Scaled Wrapper for mobile devices */}
-      <div className="relative w-full max-w-[600px] aspect-600/520">
+    <div className="relative w-full flex justify-center overflow-visible py-2 sm:py-0">
+      {/* Scaled Wrapper for mobile & tablet devices */}
+      <div className="relative w-full max-w-[360px] xs:max-w-[440px] sm:max-w-[520px] lg:max-w-[600px] aspect-600/520 scale-[0.85] xs:scale-[0.92] sm:scale-95 lg:scale-100 origin-center transition-transform">
         <div className="absolute inset-0 z-0 pointer-events-none">
           {/* Top Left Line */}
           <div

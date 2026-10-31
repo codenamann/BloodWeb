@@ -125,7 +125,7 @@ export const FooterLinks = () => {
             aria-label="GitHub"
             className="w-9 h-9 rounded-xl clay-card-flat bg-[#f5ede3] hover:bg-stone-300/80 flex items-center justify-center text-[#1c1d22] hover:text-[#d93829] hover:-translate-y-0.5 transition-all shadow-xs"
           >
-            <GithubFilled className="w-6 h-6 text-[#1c1d22] group-hover:text-[#d93829]" />
+            <GithubFilled className="w-5 h-5 text-[#1c1d22] group-hover:text-[#d93829]" />
           </a>
           <a
             href="https://www.linkedin.com/in/codenaman/"
@@ -143,7 +143,7 @@ export const FooterLinks = () => {
             aria-label="X (Twitter)"
             className="w-9 h-9 rounded-xl clay-card-flat bg-[#f5ede3] hover:bg-stone-300/80 flex items-center justify-center text-[#1c1d22] hover:text-[#d93829] hover:-translate-y-0.5 transition-all shadow-xs"
           >
-            <XFilled className="w-3.5 h-3.5 text-[#1c1d22] group-hover:text-[#d93829]" />
+            <XFilled className="w-4 h-4 text-[#1c1d22] group-hover:text-[#d93829]" />
           </a>
         </div>
       </div>

@@ -7,7 +7,7 @@ export const TwoWaysToUse = ({ onRequestBlood, onDonate }) => {
   return (
     <section
       id="for-everyone"
-      className="relative py-16 overflow-hidden scroll-mt-20"
+      className="relative py-12 sm:py-16 overflow-hidden scroll-mt-20"
     >
       {/* Ambient Floating Clay Spheres */}
       <div
@@ -19,7 +19,7 @@ export const TwoWaysToUse = ({ onRequestBlood, onDonate }) => {
         aria-hidden="true"
       />
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16 space-y-3">
           <Badge

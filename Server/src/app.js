@@ -2,9 +2,12 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import env from './config/env.js';
-import authRoutes from './api/routes/auth.routes.js';
-import errorHandler from './middleware/errorHandler.js';
 import { getStatus } from './api/controllers/status.controller.js';
+import errorHandler from './middleware/errorHandler.js';
+import authRoutes from './api/routes/auth.routes.js';
+import userRoutes from './api/routes/user.routes.js';
+import hospitalRoutes from './api/routes/hospital.routes.js';
+import requestRoutes from './api/routes/request.routes.js';
 
 const app = express();
 
@@ -38,7 +41,13 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.get('/', getStatus);
 
 // API Routes
-app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/hospital', hospitalRoutes);
+app.use('/api/request', requestRoutes);
+
+// Static file serving for uploads
+app.use('/uploads', express.static('public/uploads'));
 
 // 404 Handling Middleware
 app.use((req, res) => {

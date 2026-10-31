@@ -7,11 +7,11 @@ export const HeroHeading = () => (
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.55, delay: 0.1 }}
-      className="text-3xl sm:text-5xl lg:text-[56px] xl:text-[62px] font-black text-[#1c1d22] leading-[1.08] tracking-tight"
+      className="text-3xl sm:text-5xl lg:text-[52px] xl:text-[62px] font-black text-[#1c1d22] leading-[1.1] sm:leading-[1.08] tracking-tight"
     >
-      When blood<br />
-      is needed,<br />
-      <span className="text-[#d93829]">connection</span><br />
+      When blood <br className="hidden sm:inline" />
+      is needed, <br className="hidden sm:inline" />
+      <span className="text-[#d93829]">connection</span> <br className="hidden sm:inline" />
       <span className="text-[#d93829]">matters.</span>
     </motion.h1>
 

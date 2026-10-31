@@ -9,8 +9,9 @@ import {
   Heart,
   UserCheck,
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { PasswordInput } from '../../components/ui';
 import ClayLogo from '../../components/ClayAssets/ClayLogo';
 import ClayAvatar from '../../components/ClayAssets/ClayAvatar';
 
@@ -22,6 +23,8 @@ export const LoginPage = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,7 +35,7 @@ export const LoginPage = () => {
       const res = await login(email, password);
       console.dir(res);
       if (res.status === 'success') {
-        navigate('/dashboard');
+        navigate(from, { replace: true });
       } else if (res.code === 'EMAIL_NOT_VERIFIED') {
         navigate('/verify-otp', { state: { email: res.email } });
       } else {
@@ -118,7 +121,7 @@ export const LoginPage = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-[#faf7f2] rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30"
+                  className="w-full pl-10 pr-4 py-2.5 text-sm text-[#1c1d22] bg-[#faf7f2] rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30"
                 />
               </div>
             </div>
@@ -139,17 +142,12 @@ export const LoginPage = () => {
                   Forgot?
                 </a>
               </div>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-[#faf7f2] rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30"
-                />
-              </div>
+              <PasswordInput
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+              />
             </div>
 
             <button

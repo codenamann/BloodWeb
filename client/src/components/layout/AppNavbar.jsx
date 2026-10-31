@@ -126,7 +126,7 @@ export const AppNavbar = () => {
 
                 {/* Notifications Dropdown (Mobile-Safe) */}
                 {isNotifOpen && (
-                  <div className="fixed sm:absolute top-16 sm:top-full right-3 sm:right-0 mt-2 w-[calc(100vw-1.5rem)] max-w-sm sm:w-96 rounded-3xl clay-card bg-white p-4 shadow-2xl border border-white z-50">
+                  <div className="fixed sm:absolute top-16 sm:top-full right-3 sm:right-0 mt-2 w-[calc(100vw-1.5rem)] max-w-sm sm:w-96 rounded-3xl clay-card bg-white p-4 shadow-2xl z-50">
                     <div className="flex items-center justify-between pb-3 border-b border-stone-100">
                       <div className="flex items-center gap-2">
                         <Bell className="w-4 h-4 text-[#d93829]" />
@@ -254,7 +254,7 @@ export const AppNavbar = () => {
 
                 {/* Profile Dropdown (Mobile-Safe) */}
                 {isProfileOpen && (
-                  <div className="fixed sm:absolute top-16 sm:top-full right-3 sm:right-0 mt-2 w-[calc(100vw-1.5rem)] max-w-sm sm:w-72 rounded-3xl clay-card bg-white p-4 shadow-2xl border border-white z-50 space-y-3">
+                  <div className="fixed sm:absolute top-16 sm:top-full right-3 sm:right-0 mt-2 w-[calc(100vw-1.5rem)] max-w-sm sm:w-72 rounded-3xl clay-card bg-white p-4 shadow-2xl z-50 space-y-3">
                     {/* User Profile Card */}
                     <div className="flex items-center justify-between pb-3 border-b border-stone-100">
                       <div className="flex items-center gap-3">

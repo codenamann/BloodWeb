@@ -10,9 +10,18 @@ export const donorCompatibility = {
 };
 
 export function getCompatibleDonorGroups(bloodGroup) {
-    if (!donorCompatibility[bloodType]) {
-        throw new Error(`Invalid blood type: ${bloodType}`);
+    if (!donorCompatibility[bloodGroup]) {
+        throw new Error(`Invalid blood type: ${bloodGroup}`);
     }
 
-    return donorCompatibility[bloodType];
+    return donorCompatibility[bloodGroup];
 }
+
+export function getCompatibleRecipientGroups(donorBloodGroup) {
+    if (!donorBloodGroup || !donorCompatibility[donorBloodGroup]) {
+        return Object.keys(donorCompatibility);
+    }
+    return Object.keys(donorCompatibility).filter((patientGroup) =>
+        donorCompatibility[patientGroup]?.includes(donorBloodGroup)
+    );
+}

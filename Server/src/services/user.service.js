@@ -44,6 +44,7 @@ export async function loginUser(email, password) {
     return {
         user: {
             id: user._id,
+            _id: user._id,
             name: user.name,
             email: user.email,
             emailVerified: user.emailVerified
@@ -71,7 +72,7 @@ export async function resendOtp(email) {
 
 export async function sendOtp(email, otp, expiresIn) {
     const template = otpTemplate({ userName: 'User', otp, expiresIn });
-    if (env.isDevelopment) console.log('OTP ::>>', otp);
+    if (env.isDevelopment) console.log('Your 6 digit verification code is : ', otp);
     else await sendEmail({ to: email, subject: 'BloodWeb Verification Code', emailBody: template });
 }
 
@@ -97,6 +98,7 @@ export async function verifyOtp(email, candidateOtp) {
     return {
         user: {
             id: user._id,
+            _id: user._id,
             name: user.name,
             email: user.email,
             emailVerified: user.emailVerified
@@ -128,34 +130,66 @@ export async function getUserProfile(userId) {
     const user = await User.findById(userId); // Virtuals are said to be attached with mongoose document by def.
     if (!user) throw new AppError('User not found', 404);
 
-    return user;
+    return {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        emailVerified: user.emailVerified,
+        profileComplete: user.profileComplete,
+        reliabilityScore: user.reliabilityScore,
+        bloodGroup: user.bloodGroup,
+        dob: user.dob,
+        pendingDob: user.pendingDob,
+        dobUpdateStatus: user.dobUpdateStatus,
+        location: user.location,
+        availability: user.availability,
+        totalVolunteers: user.totalVolunteers,
+        successfulDonations: user.successfulDonations
+    };
 }
 
 export async function updateLocation(userId, locationData) {
-    const result = await User.updateOne({ _id: userId }, { $set: { location: locationData } });
-    if (result.matchedCount === 0) {
+    const user = await User.findByIdAndUpdate(userId, { $set: { location: locationData } }, { new: true, runValidators: true });
+
+    if (!user) {
         throw new AppError("User not found", 404);
     }
 
-    return result;
+    return user.location;
 }
 
 export async function updateBloodGroup(userId, bloodGroup) {
-    const result = await User.updateOne({ _id: userId }, { $set: { bloodGroup } });
-    if (result.matchedCount === 0) {
+    const user = await User.findByIdAndUpdate(userId, { $set: { bloodGroup } }, { new: true, runValidators: true });
+    if (!user) {
         throw new AppError("User not found", 404);
     }
-
-    return result;
+    return await getUserProfile(userId);
 }
 
 export async function updatePhone(userId, phone) {
-    const result = await User.updateOne({ _id: userId }, { $set: { phone } })
-    if (result.matchedCount === 0) {
+    const user = await User.findByIdAndUpdate(userId, { $set: { phone } }, { new: true, runValidators: true });
+    if (!user) {
         throw new AppError("User not found", 404);
     }
+    return await getUserProfile(userId);
+}
 
-    return result;
+export async function updateDob(userId, dob) {
+    const user = await User.findById(userId);
+    if (!user) throw new AppError("User not found", 404);
+    
+    if (!user.dob) {
+        user.dob = dob;
+        user.dobUpdateStatus = 'none';
+    } else {
+        user.pendingDob = dob;
+        user.dobUpdateStatus = 'pending';
+    }
+    
+    await user.save();
+    return await getUserProfile(userId);
 }
 
 export async function toggleAvailability(userId) {
@@ -164,7 +198,8 @@ export async function toggleAvailability(userId) {
         {
             availability: 1,
             bloodGroup: 1,
-            location: 1
+            location: 1,
+            phone: 1
         }
     );
 
@@ -172,6 +207,7 @@ export async function toggleAvailability(userId) {
     if (!user.bloodGroup) throw new AppError('bloodGroup is missing', 400);
     if (!user.location) throw new AppError('Location is missing', 400);
     if (!user.location.coordinates) throw new AppError('Coordinates are missing', 400);
+    if (!user.phone) throw new AppError('Phone number is missing', 400);
 
     user.availability = !user.availability;
     return await user.save();

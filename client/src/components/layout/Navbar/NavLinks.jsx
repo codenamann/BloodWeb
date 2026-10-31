@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 
 export const NavLinks = ({ links, onNavClick, activeSection }) => (
-  <nav className="hidden lg:flex items-center gap-7">
+  <nav className="hidden lg:flex items-center gap-4 xl:gap-7">
     {links.map((link) => {
       const isActive = link.href === `#${activeSection}`;
       return (

@@ -1,10 +1,17 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   getCompatibleDonorGroups,
   calculateDistanceKm,
   calculateRankScore,
 } from '../utils/compatibility';
 import { MOCK_USERS } from '../data/mockData';
+import {
+  createBloodRequest,
+  getMyRequests,
+  getAllRequests,
+  cancelBloodRequest,
+} from '../api/request.api';
+import { useAuth } from './AuthContext';
 
 const BloodRequestContext = createContext(null);
 
@@ -157,59 +164,170 @@ const INITIAL_REQUESTS = [
 ];
 
 export const BloodRequestProvider = ({ children }) => {
-  const [requests, setRequests] = useState(() => {
-    const saved = localStorage.getItem('bloodweb_requests');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return INITIAL_REQUESTS;
-      }
+  const { currentUser, isAuthenticated } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState(null);
+  const [myPagination, setMyPagination] = useState({ page: 1, limit: 10, total: 0, hasMore: false });
+  const [networkPagination, setNetworkPagination] = useState({ page: 1, limit: 10, total: 0, hasMore: false });
+
+  const [myRequests, setMyRequests] = useState([]);
+  const [networkRequests, setNetworkRequests] = useState([]);
+
+  // Compute unified requests for any legacy consumers
+  const requests = useMemo(() => {
+    const map = new Map();
+    networkRequests.forEach((req) => {
+      if (req?._id) map.set(req._id.toString(), req);
+    });
+    myRequests.forEach((req) => {
+      if (req?._id) map.set(req._id.toString(), req);
+    });
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    );
+  }, [myRequests, networkRequests]);
+
+  const fetchMyRequests = useCallback(async (filters = {}, isAppend = false) => {
+    const token = localStorage.getItem('bloodweb_token');
+    if (!token) return;
+
+    if (isAppend) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
     }
-    return INITIAL_REQUESTS;
-  });
+    setError(null);
 
-  const saveRequests = (updated) => {
-    setRequests(updated);
-    localStorage.setItem('bloodweb_requests', JSON.stringify(updated));
-  };
+    try {
+      const page = isAppend ? (myPagination.page || 1) + 1 : 1;
+      const res = await getMyRequests({
+        page,
+        limit: 10,
+        status: filters.status,
+        bloodGroup: filters.bloodGroup,
+        search: filters.search,
+      });
 
-  const createRequest = (requestData, creatorUser) => {
-    const hospital =
-      MOCK_HOSPITALS.find((h) => h.id === requestData.hospitalId) ||
-      MOCK_HOSPITALS[0];
-    const newRequest = {
-      _id: `req-${Date.now()}`,
-      patientBloodGroup: requestData.patientBloodGroup,
-      unitsNeeded: Number(requestData.unitsNeeded) || 1,
-      hospitalId: hospital.id,
-      hospitalName: hospital.name,
-      hospitalAddress: hospital.address,
-      hospitalCoordinates: hospital.coordinates,
-      urgency: requestData.urgency || 'NORMAL',
-      status: 'ACTIVE',
-      neededBy: requestData.neededBy || 'As soon as possible',
-      patientCondition:
-        requestData.patientCondition || 'Emergency blood requirement',
-      hospitalDocument: requestData.hospitalDocument || null,
-      createdBy: {
-        _id: creatorUser._id,
-        name: creatorUser.name,
-        phone: creatorUser.phone,
-        email: creatorUser.email,
-        avatarType: creatorUser.avatarType || 'alex',
-      },
-      createdAt: new Date().toISOString(),
-      responses: [],
-    };
+      const newRequests = res.requests || [];
+      const newPagination = res.pagination || { page, limit: 10, total: newRequests.length, hasMore: false };
 
-    const updated = [newRequest, ...requests];
-    saveRequests(updated);
-    return newRequest;
+      setMyRequests((prev) => {
+        if (!isAppend) return newRequests;
+        const existingIds = new Set(prev.map(r => r._id?.toString()));
+        const unique = newRequests.filter(r => !existingIds.has(r._id?.toString()));
+        return [...prev, ...unique];
+      });
+
+      setMyPagination(newPagination);
+      return res;
+    } catch (err) {
+      console.error('Failed to fetch my requests:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load my requests');
+      throw err;
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [myPagination.page]);
+
+  const fetchNetworkRequests = useCallback(async (filters = {}, isAppend = false) => {
+    const token = localStorage.getItem('bloodweb_token');
+    if (!token) return;
+
+    if (isAppend) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+    setError(null);
+
+    try {
+      const page = isAppend ? (networkPagination.page || 1) + 1 : 1;
+      const res = await getAllRequests({
+        page,
+        limit: 10,
+        status: filters.status,
+        bloodGroup: filters.bloodGroup,
+        search: filters.search,
+        excludeUser: (currentUser?._id || currentUser?.id)?.toString(),
+        donorBloodGroup: currentUser?.bloodGroup,
+      });
+
+      const newRequests = res.requests || [];
+      const newPagination = res.pagination || { page, limit: 10, total: newRequests.length, hasMore: false };
+
+      setNetworkRequests((prev) => {
+        if (!isAppend) return newRequests;
+        const existingIds = new Set(prev.map(r => r._id?.toString()));
+        const unique = newRequests.filter(r => !existingIds.has(r._id?.toString()));
+        return [...prev, ...unique];
+      });
+
+      setNetworkPagination(newPagination);
+      return res;
+    } catch (err) {
+      console.error('Failed to fetch network requests:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load network requests');
+      throw err;
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [networkPagination.page, currentUser]);
+
+  const refreshRequests = useCallback(async (filters = {}) => {
+    const token = localStorage.getItem('bloodweb_token');
+    if (!token) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      await Promise.allSettled([
+        fetchMyRequests(filters, false),
+        fetchNetworkRequests(filters, false),
+      ]);
+    } catch (err) {
+      console.error('Failed to refresh blood requests:', err);
+      setError(err.message || 'Failed to refresh blood requests');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchMyRequests, fetchNetworkRequests]);
+
+  const loadMoreMyRequests = useCallback(async (filters = {}) => {
+    if (!myPagination.hasMore || loadingMore) return;
+    return fetchMyRequests(filters, true);
+  }, [fetchMyRequests, myPagination.hasMore, loadingMore]);
+
+  const loadMoreNetworkRequests = useCallback(async (filters = {}) => {
+    if (!networkPagination.hasMore || loadingMore) return;
+    return fetchNetworkRequests(filters, true);
+  }, [fetchNetworkRequests, networkPagination.hasMore, loadingMore]);
+
+  useEffect(() => {
+    if (isAuthenticated || currentUser) {
+      refreshRequests();
+    }
+  }, [isAuthenticated, currentUser, refreshRequests]);
+
+  const createRequest = async (requestData) => {
+    try {
+      const newRequest = await createBloodRequest(requestData);
+      setMyRequests((prev) => [newRequest, ...prev.filter((r) => r._id !== newRequest._id)]);
+      setMyPagination((prev) => ({
+        ...prev,
+        total: (prev.total || 0) + 1,
+      }));
+      return newRequest;
+    } catch (error) {
+      console.error("Failed to create request:", error);
+      throw error;
+    }
   };
 
   const volunteerForRequest = (requestId, donorUser) => {
-    const target = requests.find((r) => r._id === requestId);
+    const target = myRequests.find((r) => r._id === requestId) || networkRequests.find((r) => r._id === requestId);
     if (!target) return null;
 
     const alreadyVolunteered = target.responses?.some(
@@ -248,7 +366,7 @@ export const BloodRequestProvider = ({ children }) => {
       createdAt: new Date().toISOString(),
     };
 
-    const updatedRequests = requests.map((req) => {
+    const updater = (req) => {
       if (req._id === requestId) {
         return {
           ...req,
@@ -256,16 +374,17 @@ export const BloodRequestProvider = ({ children }) => {
         };
       }
       return req;
-    });
+    };
 
-    saveRequests(updatedRequests);
+    setMyRequests((prev) => prev.map(updater));
+    setNetworkRequests((prev) => prev.map(updater));
     return newResponse;
   };
 
   const updateVolunteerStatus = (requestId, responseId, newStatus) => {
-    const updatedRequests = requests.map((req) => {
+    const updater = (req) => {
       if (req._id === requestId) {
-        const updatedResponses = req.responses.map((resp) => {
+        const updatedResponses = (req.responses || []).map((resp) => {
           if (resp._id === responseId) {
             return { ...resp, status: newStatus };
           }
@@ -287,19 +406,28 @@ export const BloodRequestProvider = ({ children }) => {
         };
       }
       return req;
-    });
+    };
 
-    saveRequests(updatedRequests);
+    setMyRequests((prev) => prev.map(updater));
+    setNetworkRequests((prev) => prev.map(updater));
   };
 
-  const updateRequestStatus = (requestId, newStatus) => {
-    const updatedRequests = requests.map((req) => {
+  const updateRequestStatus = async (requestId, newStatus) => {
+    let backendResult = null;
+    if (newStatus === 'CANCELLED') {
+      backendResult = await cancelBloodRequest(requestId);
+    }
+
+    const updater = (req) => {
       if (req._id === requestId) {
-        return { ...req, status: newStatus };
+        return backendResult ? { ...req, ...backendResult, status: newStatus } : { ...req, status: newStatus };
       }
       return req;
-    });
-    saveRequests(updatedRequests);
+    };
+
+    setMyRequests((prev) => prev.map(updater));
+    setNetworkRequests((prev) => prev.map(updater));
+    return backendResult;
   };
 
   const getMatchingDonorsForRequest = (request) => {
@@ -352,6 +480,18 @@ export const BloodRequestProvider = ({ children }) => {
     <BloodRequestContext.Provider
       value={{
         requests,
+        myRequests,
+        networkRequests,
+        loading,
+        loadingMore,
+        error,
+        myPagination,
+        networkPagination,
+        fetchMyRequests,
+        fetchNetworkRequests,
+        loadMoreMyRequests,
+        loadMoreNetworkRequests,
+        refreshRequests,
         hospitals: MOCK_HOSPITALS,
         createRequest,
         volunteerForRequest,

@@ -7,7 +7,7 @@ export const ContactSection = () => {
   return (
     <section
       id="contact"
-      className="relative py-16 overflow-hidden scroll-mt-20"
+      className="relative py-12 sm:py-16 overflow-hidden scroll-mt-20"
     >
       {/* Decorative Floating Clay Spheres */}
       <div
@@ -15,7 +15,7 @@ export const ContactSection = () => {
         aria-hidden="true"
       />
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="flex flex-col items-start mb-8"></div>
 
