@@ -20,7 +20,7 @@ const locationSchema = new mongoose.Schema(
     country: { type: String, required: true, trim: true },
     state: { type: String, required: true, trim: true },
     city: { type: String, required: true, trim: true, lowercase: true },
-    area: { type: String, required: true, trim: true },
+    area: { type: String, required: false, default: '', trim: true },
     pincode: { type: String, required: true, trim: true },
 
     // Optional yet recommended for better location accuracy.

@@ -1,23 +1,22 @@
 import React from 'react';
-import { Crosshair, MapPin, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { MapPin, Check } from 'lucide-react';
 
 export const DonorLocationFields = ({
   locCountry,
-  setLocCountry,
   locState,
-  setLocState,
   locCity,
-  setLocCity,
   locArea,
-  setLocArea,
   locPincode,
-  setLocPincode,
   locCoords,
-  isDetectingLocation,
-  handleDetectLocation,
   onOpenPicker,
-  onClearError,
 }) => {
+  const hasValidLocation = Boolean(
+    locCoords &&
+    typeof locCoords.lat === 'number' &&
+    typeof locCoords.lng === 'number' &&
+    (locCity || locArea || locState)
+  );
+
   return (
     <div className="space-y-2 pt-1 border-t border-stone-100">
       <div className="flex items-center justify-between">
@@ -25,121 +24,69 @@ export const DonorLocationFields = ({
           <span>2. Your Location</span>
           <span className="text-[#d93829]">*</span>
         </label>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleDetectLocation}
-            disabled={isDetectingLocation}
-            className="text-[10px] font-black text-[#d93829] hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
-          >
-            {isDetectingLocation ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <Crosshair className="w-3 h-3" />
-            )}
-            <span>Detect Location</span>
-          </button>
-          <span className="text-stone-300">•</span>
-          <button
-            type="button"
-            onClick={onOpenPicker}
-            className="text-[10px] font-black text-stone-600 hover:text-stone-900 flex items-center gap-1 cursor-pointer"
-          >
-            <MapPin className="w-3 h-3 text-stone-400" />
-            <span>Pick on Map</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Coordinates Status Badge */}
-      <div className="flex items-center justify-between text-[11px] pb-1">
-        {locCoords && typeof locCoords.lat === 'number' && typeof locCoords.lng === 'number' ? (
-          <span className="text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/80 flex items-center gap-1.5">
+        {hasValidLocation ? (
+          <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
             <Check className="w-3 h-3 text-emerald-600" />
-            <span>Coordinates: {locCoords.lat.toFixed(4)}, {locCoords.lng.toFixed(4)}</span>
+            <span>Coordinates Verified</span>
           </span>
         ) : (
-          <span className="text-amber-700 font-bold bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/80 flex items-center gap-1.5">
-            <AlertCircle className="w-3 h-3 text-amber-600" />
-            <span>Coordinates required (use Detect or Pick on Map)</span>
+          <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+            Location Required
           </span>
         )}
       </div>
 
-      {/* Country & State */}
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-[10px] font-bold text-stone-500 block mb-0.5">Country *</label>
-          <input
-            type="text"
-            value={locCountry}
-            onChange={(e) => {
-              setLocCountry(e.target.value);
-              onClearError?.();
-            }}
-            placeholder="e.g. India"
-            className="w-full px-3 py-2 text-xs bg-[#faf7f2] rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30 font-bold text-stone-800"
-          />
-        </div>
-        <div>
-          <label className="text-[10px] font-bold text-stone-500 block mb-0.5">State *</label>
-          <input
-            type="text"
-            value={locState}
-            onChange={(e) => {
-              setLocState(e.target.value);
-              onClearError?.();
-            }}
-            placeholder="e.g. Madhya Pradesh"
-            className="w-full px-3 py-2 text-xs bg-[#faf7f2] rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30 font-bold text-stone-800"
-          />
-        </div>
-      </div>
+      {!hasValidLocation ? (
+        <button
+          type="button"
+          onClick={onOpenPicker}
+          className="w-full p-4 rounded-2xl border-2 border-dashed border-stone-300 hover:border-[#d93829] bg-[#faf7f2] hover:bg-red-50/40 transition-all flex items-center justify-between group cursor-pointer text-left"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white shadow-xs border border-stone-200 flex items-center justify-center text-stone-400 group-hover:text-[#d93829] group-hover:scale-105 transition-all">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-black text-stone-800 group-hover:text-[#d93829] transition-colors">
+                Set Up Location
+              </div>
+              <div className="text-[11px] text-stone-500 font-medium">
+                Detect automatically, search address, or pick on map
+              </div>
+            </div>
+          </div>
+          <div className="px-3.5 py-1.5 rounded-xl clay-btn-crimson text-xs font-bold shadow-xs shrink-0">
+            Select
+          </div>
+        </button>
+      ) : (
+        <div className="p-3.5 rounded-2xl bg-emerald-50/50 border border-emerald-200/80 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-white border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0 shadow-xs">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-black text-stone-900 truncate">
+                {[locArea, locCity].filter(Boolean).join(', ') || 'Selected Location'}
+              </div>
+              <div className="text-[11px] text-stone-500 font-medium truncate">
+                {[locState, locCountry, locPincode].filter(Boolean).join(', ')}
+              </div>
+              <div className="text-[10px] font-mono text-emerald-700 font-bold mt-0.5">
+                {locCoords.lat.toFixed(4)}, {locCoords.lng.toFixed(4)}
+              </div>
+            </div>
+          </div>
 
-      {/* City & Area */}
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-[10px] font-bold text-stone-500 block mb-0.5">City *</label>
-          <input
-            type="text"
-            value={locCity}
-            onChange={(e) => {
-              setLocCity(e.target.value);
-              onClearError?.();
-            }}
-            placeholder="e.g. Indore"
-            className="w-full px-3 py-2 text-xs bg-[#faf7f2] rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30 font-bold text-stone-800"
-          />
+          <button
+            type="button"
+            onClick={onOpenPicker}
+            className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+          >
+            Change
+          </button>
         </div>
-        <div>
-          <label className="text-[10px] font-bold text-stone-500 block mb-0.5">Area / Locality *</label>
-          <input
-            type="text"
-            value={locArea}
-            onChange={(e) => {
-              setLocArea(e.target.value);
-              onClearError?.();
-            }}
-            placeholder="e.g. Vijay Nagar"
-            className="w-full px-3 py-2 text-xs bg-[#faf7f2] rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30 font-bold text-stone-800"
-          />
-        </div>
-      </div>
-
-      {/* Pincode */}
-      <div>
-        <label className="text-[10px] font-bold text-stone-500 block mb-0.5">Pincode *</label>
-        <input
-          type="text"
-          value={locPincode}
-          onChange={(e) => {
-            setLocPincode(e.target.value);
-            onClearError?.();
-          }}
-          placeholder="e.g. 452010"
-          className="w-full px-3 py-2 text-xs bg-[#faf7f2] rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30 font-bold text-stone-800"
-        />
-      </div>
+      )}
     </div>
   );
 };

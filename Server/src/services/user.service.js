@@ -408,11 +408,11 @@ export async function updateDonorReadiness(userId, { bloodGroup, location, avail
         const country = location.country?.trim();
         const state = location.state?.trim();
         const city = location.city?.trim()?.toLowerCase();
-        const area = location.area?.trim();
+        const area = location.area?.trim() || '';
         const pincode = location.pincode?.trim();
 
-        if (!country || !state || !city || !area || !pincode) {
-            throw new AppError("All location fields (country, state, city, area, pincode) must be provided", 400);
+        if (!country || !state || !city || !pincode) {
+            throw new AppError("Location fields (country, state, city, pincode) must be provided", 400);
         }
 
         const coords = location.coordinates && typeof location.coordinates.lat === 'number' && typeof location.coordinates.lng === 'number'
@@ -439,8 +439,8 @@ export async function updateDonorReadiness(userId, { bloodGroup, location, avail
             if (!user.bloodGroup) {
                 throw new AppError("Blood group must be configured before enabling availability", 400);
             }
-            if (!user.location || !user.location.city || !user.location.state || !user.location.country || !user.location.area || !user.location.pincode) {
-                throw new AppError("Full location details must be configured before enabling availability", 400);
+            if (!user.location || !user.location.city || !user.location.state || !user.location.country || !user.location.pincode) {
+                throw new AppError("Full location details (city, state, country, pincode) must be configured before enabling availability", 400);
             }
             if (!user.location.coordinates || typeof user.location.coordinates.lat !== 'number' || typeof user.location.coordinates.lng !== 'number') {
                 throw new AppError("Valid coordinates must be provided before enabling availability", 400);

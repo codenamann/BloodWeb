@@ -8,6 +8,7 @@ import {
   toggleAvailability as toggleAvailabilityApi,
 } from '../api/profile.api';
 import { disconnectSocket } from '../services/socket.js';
+import { toast } from '../components/ui/toast';
 
 const AuthContext = createContext(null);
 
@@ -169,6 +170,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const toggleAvailability = async () => {
+    if (!currentUser?.availability && !currentUser?.bloodGroup) {
+      toast.error(
+        'Blood Group Required',
+        'Please set up your verified blood group in your profile before enabling availability.'
+      );
+      const err = new Error('Blood group is required before enabling availability.');
+      err.response = { data: { message: 'Please set up your verified blood group first.' } };
+      throw err;
+    }
     try {
       const res = await toggleAvailabilityApi();
       if (res.status === 'success') {

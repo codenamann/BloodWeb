@@ -3,6 +3,7 @@ import { ChevronDown, User, FileText, Search, LogOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
+import { toast } from '../../ui/toast';
 
 const ProfileDropdown = ({ currentUser, isOpen, onToggle }) => {
   const navigate = useNavigate();
@@ -84,7 +85,29 @@ const ProfileDropdown = ({ currentUser, isOpen, onToggle }) => {
                 </div>
               </div>
               <button
-                onClick={() => toggleAvailability()}
+                onClick={async () => {
+                  if (!currentUser?.availability && !currentUser?.bloodGroup) {
+                    toast.error(
+                      'Blood Group Required',
+                      'Please set up your verified blood group in your profile before enabling availability.'
+                    );
+                    return;
+                  }
+                  try {
+                    await toggleAvailability();
+                    toast.success(
+                      currentUser?.availability ? 'Availability Paused' : 'Now Available',
+                      currentUser?.availability
+                        ? 'You will no longer receive emergency requests.'
+                        : 'You are now active for emergency donor matches!'
+                    );
+                  } catch (err) {
+                    toast.error(
+                      'Cannot Toggle Availability',
+                      err?.response?.data?.message || err?.message || 'Failed to update availability.'
+                    );
+                  }
+                }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                   currentUser?.availability
                     ? 'clay-btn-crimson bg-emerald-600 text-white shadow-sm'

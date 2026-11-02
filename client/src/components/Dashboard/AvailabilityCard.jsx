@@ -28,11 +28,13 @@ function AvailabilityCard({ availability, onToggle }) {
                   : 'You are now visible to the matching engine!'
               );
             } catch (err) {
-              toast.error(
-                'Cannot Toggle Availability',
-                err?.response?.data?.message ||
-                  'Please update your profile first.'
-              );
+              if (err?.message !== 'Blood group is required before enabling availability.') {
+                toast.error(
+                  'Cannot Toggle Availability',
+                  err?.response?.data?.message ||
+                    'Please update your profile first.'
+                );
+              }
             }
           }}
         />

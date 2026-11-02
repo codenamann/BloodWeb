@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { isDonorCompatible } from '../../utils/compatibility';
-
 import { RequestDetailSkeleton } from './components/RequestDetailSkeleton';
 import {
   RequestDetailHeader,
@@ -31,11 +28,11 @@ const formatNeededBy = (val) => {
 
 export const RequestDetailPage = () => {
   const { id } = useParams();
-  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('OVERVIEW');
 
   const {
+    currentUser,
     request,
     loading,
     error,
@@ -57,63 +54,26 @@ export const RequestDetailPage = () => {
     handleWithdraw,
     confirmWithdraw,
     getVolunteerBadge,
+    isRequester,
+    isCompatible,
+    responses,
+    myResponse,
+    alreadyVolunteered,
+    hasAcceptedVolunteers,
+    unitsNeeded,
+    fulfilledUnits,
+    remainingUnits,
+    progressPercentage,
+    isTerminal,
+    hospitalName,
+    hospitalLocation,
+    hospitalCoords,
+    formattedCreatedAt,
   } = useRequestDetailPage(id, setActiveTab);
 
-  if (loading) {
-    return <RequestDetailSkeleton />;
-  }
-
-  if (statusCode === 404 || (!request && !error)) {
-    return <RequestNotFoundView />;
-  }
-
-  if (error || !request) {
-    return <RequestErrorView error={error} onRetry={fetchRequest} />;
-  }
-
-  const isRequester = Boolean(currentUser?._id && request.createdBy?._id === currentUser._id);
-  const isCompatible = Boolean(
-    currentUser?.bloodGroup &&
-    isDonorCompatible(currentUser.bloodGroup, request.patientBloodGroup)
-  );
-
-  const responses = Array.isArray(request.responses) ? request.responses : [];
-  const myResponse = responses.find(
-    (resp) =>
-      currentUser?._id &&
-      (resp.donorId === currentUser._id || resp.donor?._id === currentUser._id)
-  );
-  const alreadyVolunteered = Boolean(myResponse);
-  const hasAcceptedVolunteers = responses.some((r) => r.status === 'ACCEPTED');
-
-  const unitsNeeded = request.fulfillment?.unitsNeeded ?? request.unitsNeeded ?? 1;
-  const fulfilledUnits = request.fulfillment?.fulfilledUnits ?? 0;
-  const remainingUnits =
-    request.fulfillment?.remainingUnits ?? Math.max(0, unitsNeeded - fulfilledUnits);
-  const progressPercentage =
-    request.fulfillment?.progressPercentage ??
-    Math.min(100, Math.round((fulfilledUnits / (unitsNeeded || 1)) * 100));
-
-  const isTerminal = ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(request.status);
-  const hospitalName = request.hospitalName || request.hospitalId?.name || 'Hospital';
-  const hospitalLocation = [
-    request.hospitalAddress || request.hospitalId?.address,
-    request.hospitalCity || request.hospitalId?.city,
-    request.hospitalState || request.hospitalId?.state,
-  ]
-    .filter(Boolean)
-    .join(', ');
-  const hospitalCoords = request.hospitalCoordinates || request.hospitalId?.coordinates || null;
-
-  const formattedCreatedAt = request.createdAt
-    ? new Date(request.createdAt).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : '';
+  if (loading) return <RequestDetailSkeleton />;
+  if (statusCode === 404 || (!request && !error)) return <RequestNotFoundView />;
+  if (error || !request) return <RequestErrorView error={error} onRetry={fetchRequest} />;
 
   return (
     <div className="space-y-6">

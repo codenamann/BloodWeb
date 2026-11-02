@@ -15,7 +15,6 @@ export const useDonorsPageData = () => {
     currentUser?.location?.country &&
     currentUser?.location?.state &&
     currentUser?.location?.city &&
-    currentUser?.location?.area &&
     currentUser?.location?.pincode &&
     currentUser?.location?.coordinates &&
     typeof currentUser.location.coordinates.lat === 'number' &&
@@ -35,7 +34,6 @@ export const useDonorsPageData = () => {
         currentUser.location?.country &&
         currentUser.location?.state &&
         currentUser.location?.city &&
-        currentUser.location?.area &&
         currentUser.location?.pincode &&
         currentUser.location?.coordinates &&
         typeof currentUser.location.coordinates.lat === 'number' &&

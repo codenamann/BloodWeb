@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { toast } from '../../../components/ui/toast';
 
 const AvailabilityCard = () => {
   const { currentUser, toggleAvailability } = useAuth();
@@ -26,14 +27,35 @@ const AvailabilityCard = () => {
         </div>
 
         <button
-          onClick={() => {
-            if (!canBeAvailable) {
-              alert(
-                'Complete your blood group, city/state, and coordinates to enable availability.'
+          onClick={async () => {
+            if (!hasBloodGroup) {
+              toast.error(
+                'Blood Group Required',
+                'Please set up your verified blood group before enabling availability.'
               );
               return;
             }
-            toggleAvailability();
+            if (!hasLocation || !hasCoordinates) {
+              toast.error(
+                'Location Required',
+                'Please set up your location and coordinates before enabling availability.'
+              );
+              return;
+            }
+            try {
+              await toggleAvailability();
+              toast.success(
+                currentUser?.availability ? 'Availability Paused' : 'Now Available',
+                currentUser?.availability
+                  ? 'You will no longer receive emergency requests.'
+                  : 'You are now visible to the matching engine!'
+              );
+            } catch (err) {
+              toast.error(
+                'Cannot Toggle Availability',
+                err?.response?.data?.message || err?.message || 'Failed to update availability.'
+              );
+            }
           }}
           className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
             currentUser?.availability

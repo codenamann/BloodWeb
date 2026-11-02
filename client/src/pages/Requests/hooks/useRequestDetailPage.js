@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../../context/AuthContext';
+import { isDonorCompatible } from '../../../utils/compatibility';
 import { getRequestById, cancelBloodRequest, completeBloodRequest } from '../../../api/request.api';
 import {
   volunteerForRequest,
@@ -8,6 +10,7 @@ import {
 import { subscribeToRequestUpdates } from '../../../services/socket';
 
 export const useRequestDetailPage = (id, setActiveTab) => {
+  const { currentUser } = useAuth();
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -58,39 +61,29 @@ export const useRequestDetailPage = (id, setActiveTab) => {
     return cleanup;
   }, [id, fetchRequest]);
 
-  const handleCancelRequest = async () => {
-    if (!request?._id) return;
-    if (window.confirm('Are you sure you want to cancel this emergency request?')) {
-      try {
-        setCancelling(true);
-        const updated = await cancelBloodRequest(request._id);
-        setRequest((prev) => ({
-          ...prev,
-          status: 'CANCELLED',
-          ...(updated || {}),
-        }));
-      } catch (err) {
-        console.error('Cancellation failed:', err);
-        alert(err.response?.data?.message || 'Failed to cancel request');
-      } finally {
-        setCancelling(false);
-      }
+  const handleCancelRequest = async (reason) => {
+    if (!request) return;
+    try {
+      setCancelling(true);
+      await cancelBloodRequest(request._id, reason || 'Cancelled by requester');
+      await fetchRequest();
+    } catch (err) {
+      console.error('Failed to cancel request:', err);
+      alert(err.response?.data?.message || 'Failed to cancel request');
+    } finally {
+      setCancelling(false);
     }
   };
 
   const handleCompleteRequest = async () => {
-    if (!request?._id) return;
+    if (!request) return;
     try {
       setCompleting(true);
-      const updated = await completeBloodRequest(request._id);
-      setRequest((prev) => ({
-        ...prev,
-        status: 'COMPLETED',
-        ...(updated || {}),
-      }));
+      await completeBloodRequest(request._id);
+      await fetchRequest();
       setConfirmingComplete(false);
     } catch (err) {
-      console.error('Completion failed:', err);
+      console.error('Failed to complete request:', err);
       alert(err.response?.data?.message || 'Failed to complete request');
     } finally {
       setCompleting(false);
@@ -98,81 +91,65 @@ export const useRequestDetailPage = (id, setActiveTab) => {
   };
 
   const handleShare = () => {
-    navigator.clipboard?.writeText(window.location.href);
-    setShareFeedback(true);
-    setTimeout(() => setShareFeedback(false), 3000);
+    const url = window.location.href;
+    const text = `URGENT: ${request?.patientBloodGroup || ''} blood needed at ${
+      request?.hospitalName || request?.hospitalId?.name || 'hospital'
+    }!`;
+
+    if (navigator.share) {
+      navigator
+        .share({ title: 'BloodWeb Emergency', text, url })
+        .catch(() => {});
+    } else {
+      navigator.clipboard.writeText(`${text} ${url}`);
+      setShareFeedback(true);
+      setTimeout(() => setShareFeedback(false), 2000);
+    }
   };
 
   const handleVolunteer = async () => {
-    if (!request?._id) return;
-    setActionLoading(true);
-
-    let locationAtResponse = null;
-    if (navigator.geolocation) {
-      try {
-        const pos = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 4000,
-            maximumAge: 60000,
-          });
-        });
-        if (pos?.coords) {
-          locationAtResponse = {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          };
-        }
-      } catch (geoErr) {
-        // Geolocation denied or timed out
-      }
-    }
-
+    if (!request) return;
     try {
-      await volunteerForRequest(request._id, locationAtResponse);
+      setActionLoading(true);
+      await volunteerForRequest(request._id);
       await fetchRequest();
-      setActiveTab?.('VOLUNTEERS');
+      if (setActiveTab) setActiveTab('VOLUNTEERS');
     } catch (err) {
       console.error('Failed to volunteer:', err);
-      const msg =
-        err.response?.data?.message || err.message || 'Failed to volunteer for this request.';
-      alert(msg);
+      alert(err.response?.data?.message || 'Failed to submit volunteer offer');
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleStatusChange = async (responseId, newStatus) => {
-    if (!responseId || !newStatus) return;
-    setActionLoading(true);
+    if (!request) return;
     try {
-      await updateVolunteerStatus(responseId, newStatus);
+      setActionLoading(true);
+      await updateVolunteerStatus(request._id, responseId, newStatus);
       await fetchRequest();
     } catch (err) {
-      console.error('Failed to update volunteer status:', err);
-      const msg =
-        err.response?.data?.message || err.message || 'Failed to update volunteer status.';
-      alert(msg);
+      console.error('Failed to update status:', err);
+      alert(err.response?.data?.message || 'Failed to update volunteer status');
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleWithdraw = (responseId) => {
-    setResponseToWithdraw(responseId);
+  const handleWithdraw = (respId) => {
+    setResponseToWithdraw(respId);
   };
 
-  const confirmWithdraw = async () => {
-    if (!responseToWithdraw) return;
-    setActionLoading(true);
+  const confirmWithdraw = async (reason) => {
+    if (!request || !responseToWithdraw) return;
     try {
-      await withdrawVolunteerResponse(responseToWithdraw);
-      setResponseToWithdraw(null);
+      setActionLoading(true);
+      await withdrawVolunteerResponse(request._id, responseToWithdraw, reason);
       await fetchRequest();
+      setResponseToWithdraw(null);
     } catch (err) {
-      console.error('Failed to withdraw volunteer response:', err);
-      const msg =
-        err.response?.data?.message || err.message || 'Failed to withdraw volunteer response.';
-      alert(msg);
+      console.error('Failed to withdraw:', err);
+      alert(err.response?.data?.message || 'Failed to withdraw volunteer response');
     } finally {
       setActionLoading(false);
     }
@@ -184,16 +161,62 @@ export const useRequestDetailPage = (id, setActiveTab) => {
         return 'bg-emerald-100 text-emerald-800';
       case 'BACKUP':
         return 'bg-blue-100 text-blue-900';
+      case 'DECLINED':
       case 'WITHDRAWN':
-        return 'bg-stone-100 text-stone-500';
-      case 'REJECTED':
         return 'bg-red-100 text-[#d93829]';
       default:
         return 'bg-amber-100 text-amber-900';
     }
   };
 
+  // Derived View Models
+  const isRequester = Boolean(currentUser?._id && request?.createdBy?._id === currentUser._id);
+  const isCompatible = Boolean(
+    currentUser?.bloodGroup &&
+    request?.patientBloodGroup &&
+    isDonorCompatible(currentUser.bloodGroup, request.patientBloodGroup)
+  );
+
+  const responses = Array.isArray(request?.responses) ? request.responses : [];
+  const myResponse = responses.find(
+    (resp) =>
+      currentUser?._id &&
+      (resp.donorId === currentUser._id || resp.donor?._id === currentUser._id)
+  );
+  const alreadyVolunteered = Boolean(myResponse);
+  const hasAcceptedVolunteers = responses.some((r) => r.status === 'ACCEPTED');
+
+  const unitsNeeded = request?.fulfillment?.unitsNeeded ?? request?.unitsNeeded ?? 1;
+  const fulfilledUnits = request?.fulfillment?.fulfilledUnits ?? 0;
+  const remainingUnits =
+    request?.fulfillment?.remainingUnits ?? Math.max(0, unitsNeeded - fulfilledUnits);
+  const progressPercentage =
+    request?.fulfillment?.progressPercentage ??
+    Math.min(100, Math.round((fulfilledUnits / (unitsNeeded || 1)) * 100));
+
+  const isTerminal = ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(request?.status);
+  const hospitalName = request?.hospitalName || request?.hospitalId?.name || 'Hospital';
+  const hospitalLocation = [
+    request?.hospitalAddress || request?.hospitalId?.address,
+    request?.hospitalCity || request?.hospitalId?.city,
+    request?.hospitalState || request?.hospitalId?.state,
+  ]
+    .filter(Boolean)
+    .join(', ');
+  const hospitalCoords = request?.hospitalCoordinates || request?.hospitalId?.coordinates || null;
+
+  const formattedCreatedAt = request?.createdAt
+    ? new Date(request.createdAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '';
+
   return {
+    currentUser,
     request,
     loading,
     error,
@@ -215,6 +238,22 @@ export const useRequestDetailPage = (id, setActiveTab) => {
     handleWithdraw,
     confirmWithdraw,
     getVolunteerBadge,
+    // Derived
+    isRequester,
+    isCompatible,
+    responses,
+    myResponse,
+    alreadyVolunteered,
+    hasAcceptedVolunteers,
+    unitsNeeded,
+    fulfilledUnits,
+    remainingUnits,
+    progressPercentage,
+    isTerminal,
+    hospitalName,
+    hospitalLocation,
+    hospitalCoords,
+    formattedCreatedAt,
   };
 };
 

@@ -7,7 +7,7 @@ export const RecentRequestsFeed = ({ recentRequests, currentUser }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full lg:w-3/4 flex flex-col gap-4">
+    <div className="w-full lg:w-3/4 flex flex-col gap-8">
       <div className="flex items-center justify-between">
         <h3 className="text-base md:text-lg font-black text-stone-900 tracking-tight">
           Recent Blood Requests
@@ -22,7 +22,7 @@ export const RecentRequestsFeed = ({ recentRequests, currentUser }) => {
 
       <div className="flex flex-col gap-3">
         {recentRequests.length === 0 ? (
-          <div className="clay-card p-6 text-center bg-white/95 text-stone-500 space-y-1 shadow-xs">
+          <div className="clay-card p-7.5 text-center bg-white/95 text-stone-500 space-y-1 shadow-xs">
             <p className="text-xs font-bold text-stone-700">
               No emergency requests matching your blood type right now
             </p>
@@ -47,8 +47,8 @@ export const RecentRequestsFeed = ({ recentRequests, currentUser }) => {
 
                 <div className="space-y-0.5">
                   <div className="text-sm font-black text-stone-900">
-                    {req.unitsNeeded}{' '}
-                    {req.unitsNeeded === 1 ? 'Unit' : 'Units'} Needed
+                    {req.unitsNeeded} {req.unitsNeeded === 1 ? 'Unit' : 'Units'}{' '}
+                    Needed
                   </div>
                   <div className="text-xs text-stone-500 font-medium flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0" />
