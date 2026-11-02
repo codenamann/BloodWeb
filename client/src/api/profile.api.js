@@ -16,6 +16,11 @@ export async function updatePhone(phone) {
     return res.data;
 }
 
+export async function updateContactInfo({ name, phone }) {
+    const res = await client.patch('/api/user/contact-info', { name, phone });
+    return res.data;
+}
+
 export async function updateBloodGroup(bloodGroup) {
     const res = await client.patch('/api/user/blood-group', { bloodGroup });
     return res.data;
@@ -28,5 +33,10 @@ export async function updateDob(dob) {
 
 export async function toggleAvailability() {
     const res = await client.patch('/api/user/availability');
+    return res.data;
+}
+
+export async function updateDonorReadiness({ bloodGroup, location, availability }) {
+    const res = await client.patch('/api/user/donor-readiness', { bloodGroup, location, availability });
     return res.data;
 }

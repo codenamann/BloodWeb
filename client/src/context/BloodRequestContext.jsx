@@ -235,6 +235,13 @@ export const BloodRequestProvider = ({ children }) => {
     const token = localStorage.getItem('bloodweb_token');
     if (!token) return;
 
+    // Fast-path guard: unconfigured or unavailable donors do not receive incoming network requests
+    if (!currentUser?.availability || !currentUser?.bloodGroup) {
+      setNetworkRequests([]);
+      setNetworkPagination({ page: 1, limit: 10, total: 0, hasMore: false });
+      return { requests: [], pagination: { page: 1, limit: 10, total: 0, hasMore: false } };
+    }
+
     if (isAppend) {
       setLoadingMore(true);
     } else {

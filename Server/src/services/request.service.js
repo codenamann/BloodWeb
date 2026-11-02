@@ -15,6 +15,30 @@ import { notifyRequestCancelled, notifyRequestCompleted } from "./notification.s
 import mongoose from "mongoose";
 
 export async function createRequest(data, createdBy) {
+    // Strict Requester Verification: verified email, full name, valid phone
+    const requester = await User.findById(createdBy);
+    if (!requester) {
+        if (data.hospitalDocument?.storageKey) await deleteDocument(data.hospitalDocument.storageKey);
+        throw new AppError('User not found', 404);
+    }
+
+    if (!requester.email || !requester.emailVerified) {
+        if (data.hospitalDocument?.storageKey) await deleteDocument(data.hospitalDocument.storageKey);
+        throw new AppError('A verified email address is required before creating a blood request', 403, 'EMAIL_NOT_VERIFIED');
+    }
+
+    const trimmedName = (requester.name || '').trim();
+    if (!trimmedName || trimmedName.length < 2) {
+        if (data.hospitalDocument?.storageKey) await deleteDocument(data.hospitalDocument.storageKey);
+        throw new AppError('Your full name is required before creating a blood request', 400, 'PROFILE_NAME_REQUIRED');
+    }
+
+    const cleanPhone = (requester.phone || '').replace(/\D/g, '').slice(-10);
+    if (!cleanPhone || cleanPhone.length !== 10 || !/^[6-9]/.test(cleanPhone)) {
+        if (data.hospitalDocument?.storageKey) await deleteDocument(data.hospitalDocument.storageKey);
+        throw new AppError('A valid 10-digit mobile number is required before creating a blood request', 400, 'PROFILE_PHONE_REQUIRED');
+    }
+
     if (!data.hospitalId) {
         if (data.hospitalDocument?.storageKey) await deleteDocument(data.hospitalDocument.storageKey);
         throw new AppError('Hospital ID is required', 400);
@@ -241,11 +265,43 @@ export async function getAllRequests(filters = {}) {
     const limitNum = Math.min(50, Math.max(1, parseInt(filters.limit, 10) || 10));
     const skip = (pageNum - 1) * limitNum;
 
-    const query = {};
-
-    if (filters.excludeUser) {
-        query.createdBy = { $ne: filters.excludeUser };
+    // Server-level Donor Readiness & Compatibility Enforcement:
+    // A user can only discover incoming emergency requests if they strictly have:
+    // 1. Active account status
+    // 2. Verified blood group configured
+    // 3. Location configured (with city and state)
+    // 4. Availability status active (availability: true)
+    const donorId = filters.userId || filters.excludeUser;
+    if (!donorId) {
+        return {
+            requests: [],
+            pagination: { page: pageNum, limit: limitNum, total: 0, hasMore: false }
+        };
     }
+
+    const donor = await User.findById(donorId).select('bloodGroup availability accountStatus location');
+    const hasLocation = Boolean(
+        donor?.location &&
+        donor.location.country &&
+        donor.location.state &&
+        donor.location.city &&
+        donor.location.area &&
+        donor.location.pincode &&
+        donor.location.coordinates &&
+        typeof donor.location.coordinates.lat === 'number' &&
+        typeof donor.location.coordinates.lng === 'number'
+    );
+    if (!donor || donor.accountStatus !== 'ACTIVE' || !donor.availability || !donor.bloodGroup || !hasLocation) {
+        // Unavailable or unconfigured donors must not discover or receive incoming requests
+        return {
+            requests: [],
+            pagination: { page: pageNum, limit: limitNum, total: 0, hasMore: false }
+        };
+    }
+
+    const query = {
+        createdBy: { $ne: donor._id }
+    };
 
     if (filters.status && filters.status !== 'ALL') {
         query.status = filters.status;
@@ -253,10 +309,20 @@ export async function getAllRequests(filters = {}) {
         query.status = { $ne: 'CANCELLED' };
     }
 
+    // Derive server-side compatible recipient groups from the verified donor bloodGroup
+    const compatibleRecipients = getCompatibleRecipientGroups(donor.bloodGroup);
+
     if (filters.bloodGroup && filters.bloodGroup !== 'ALL') {
-        query.patientBloodGroup = filters.bloodGroup;
-    } else if (filters.donorBloodGroup) {
-        const compatibleRecipients = getCompatibleRecipientGroups(filters.donorBloodGroup);
+        // If caller applied a specific group filter in UI, enforce that it is within donor's compatibility
+        if (compatibleRecipients.includes(filters.bloodGroup)) {
+            query.patientBloodGroup = filters.bloodGroup;
+        } else {
+            return {
+                requests: [],
+                pagination: { page: pageNum, limit: limitNum, total: 0, hasMore: false }
+            };
+        }
+    } else {
         query.patientBloodGroup = { $in: compatibleRecipients };
     }
 

@@ -6,6 +6,7 @@ import { sendEmail } from "../utils/email.js";
 import { generateOtp, hashOtp } from "../utils/otp.js";
 import jwt from "jsonwebtoken";
 import env from "../config/env.js";
+import { BLOOD_GROUPS } from "../../../client/src/utils/compatibility.js";
 
 const OTP_EXPIRES_AT = 5; // minutes
 
@@ -76,8 +77,10 @@ export async function resendOtp(email) {
 
 export async function sendOtp(email, otp, expiresIn) {
     const template = otpTemplate({ userName: 'User', otp, expiresIn });
-    if (env.isDevelopment) console.log('Your 6 digit verification code is : ', otp);
-    else await sendEmail({ to: email, subject: 'BloodWeb Verification Code', emailBody: template });
+    if (env.isDevelopment) {
+        console.log(`[EMAIL VERIFICATION OTP] For ${email}: ${otp}`);
+    }
+    await sendEmail({ to: email, subject: 'BloodWeb Verification Code', emailBody: template });
 }
 
 export async function verifyOtp(email, candidateOtp) {
@@ -306,17 +309,57 @@ export async function updateBloodGroup(userId, bloodGroup) {
 }
 
 export async function updatePhone(userId, phone) {
-    const user = await User.findByIdAndUpdate(userId, { $set: { phone } }, { new: true, runValidators: true });
+    const cleanPhone = (phone || '').replace(/\D/g, '').slice(-10);
+    if (!cleanPhone || cleanPhone.length !== 10 || !/^[6-9]/.test(cleanPhone)) {
+        throw new AppError("Please provide a valid 10-digit mobile number", 400);
+    }
+    const existing = await User.findOne({ phone: cleanPhone, _id: { $ne: userId } });
+    if (existing) {
+        throw new AppError("This phone number is already registered with another account", 409);
+    }
+    const user = await User.findByIdAndUpdate(userId, { $set: { phone: cleanPhone } }, { new: true, runValidators: true });
     if (!user) {
         throw new AppError("User not found", 404);
     }
     return await getUserProfile(userId);
 }
 
+export async function updateContactInfo(userId, { name, phone }) {
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new AppError("User not found", 404);
+    }
+
+    if (name !== undefined) {
+        const trimmedName = (name || '').trim();
+        if (!trimmedName || trimmedName.length < 2) {
+            throw new AppError("Full name must be at least 2 characters long", 400);
+        }
+        user.name = trimmedName;
+    }
+
+    if (phone !== undefined) {
+        const cleanPhone = (phone || '').replace(/\D/g, '').slice(-10);
+        if (!cleanPhone || cleanPhone.length !== 10 || !/^[6-9]/.test(cleanPhone)) {
+            throw new AppError("Please provide a valid 10-digit mobile number", 400);
+        }
+
+        const existing = await User.findOne({ phone: cleanPhone, _id: { $ne: userId } });
+        if (existing) {
+            throw new AppError("This phone number is already registered with another account", 409);
+        }
+
+        user.phone = cleanPhone;
+    }
+
+    await user.save();
+    return await getUserProfile(userId);
+}
+
 export async function updateDob(userId, dob) {
     const user = await User.findById(userId);
     if (!user) throw new AppError("User not found", 404);
-    
+
     if (!user.dob) {
         user.dob = dob;
         user.dobUpdateStatus = 'none';
@@ -324,7 +367,7 @@ export async function updateDob(userId, dob) {
         user.pendingDob = dob;
         user.dobUpdateStatus = 'pending';
     }
-    
+
     await user.save();
     return await getUserProfile(userId);
 }
@@ -348,4 +391,64 @@ export async function toggleAvailability(userId) {
 
     user.availability = !user.availability;
     return await user.save();
+}
+
+export async function updateDonorReadiness(userId, { bloodGroup, location, availability }) {
+    const user = await User.findById(userId);
+    if (!user) throw new AppError("User not found", 404);
+
+    if (bloodGroup !== undefined && bloodGroup !== null) {
+        if (!BLOOD_GROUPS.includes(bloodGroup)) {
+            throw new AppError("Invalid blood group selected", 400);
+        }
+        user.bloodGroup = bloodGroup;
+    }
+
+    if (location !== undefined && location !== null) {
+        const country = location.country?.trim();
+        const state = location.state?.trim();
+        const city = location.city?.trim()?.toLowerCase();
+        const area = location.area?.trim();
+        const pincode = location.pincode?.trim();
+
+        if (!country || !state || !city || !area || !pincode) {
+            throw new AppError("All location fields (country, state, city, area, pincode) must be provided", 400);
+        }
+
+        const coords = location.coordinates && typeof location.coordinates.lat === 'number' && typeof location.coordinates.lng === 'number'
+            ? { lat: location.coordinates.lat, lng: location.coordinates.lng }
+            : null;
+
+        if (!coords) {
+            throw new AppError("Coordinates (latitude and longitude) must be provided for donor location", 400);
+        }
+
+        user.location = {
+            country,
+            state,
+            city,
+            area,
+            pincode,
+            coordinates: coords
+        };
+    }
+
+    if (availability !== undefined && availability !== null) {
+        const targetAvail = Boolean(availability);
+        if (targetAvail) {
+            if (!user.bloodGroup) {
+                throw new AppError("Blood group must be configured before enabling availability", 400);
+            }
+            if (!user.location || !user.location.city || !user.location.state || !user.location.country || !user.location.area || !user.location.pincode) {
+                throw new AppError("Full location details must be configured before enabling availability", 400);
+            }
+            if (!user.location.coordinates || typeof user.location.coordinates.lat !== 'number' || typeof user.location.coordinates.lng !== 'number') {
+                throw new AppError("Valid coordinates must be provided before enabling availability", 400);
+            }
+        }
+        user.availability = targetAvail;
+    }
+
+    await user.save();
+    return await getUserProfile(userId);
 }

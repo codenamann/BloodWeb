@@ -68,8 +68,10 @@ export const DonateModal = ({ isOpen, onClose }) => {
                   type="text"
                   required
                   value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  placeholder="e.g. Jordan Rivera"
+                  onChange={(e) =>
+                    setFormData({ ...formData, fullName: e.target.value })
+                  }
+                  placeholder="Enter your name"
                 />
               </div>
 
@@ -83,9 +85,13 @@ export const DonateModal = ({ isOpen, onClose }) => {
                     <button
                       key={av.type}
                       type="button"
-                      onClick={() => setFormData({ ...formData, avatarType: av.type })}
+                      onClick={() =>
+                        setFormData({ ...formData, avatarType: av.type })
+                      }
                       className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all cursor-pointer ${
-                        formData.avatarType === av.type ? 'ring-2 ring-[#d93829] bg-red-50/50 scale-105' : 'opacity-70 hover:opacity-100'
+                        formData.avatarType === av.type
+                          ? 'ring-2 ring-[#d93829] bg-red-50/50 scale-105'
+                          : 'opacity-70 hover:opacity-100'
                       }`}
                     >
                       <Avatar clayType={av.type} size={40} showBadge={false} />
@@ -106,9 +112,13 @@ export const DonateModal = ({ isOpen, onClose }) => {
                       <button
                         key={type}
                         type="button"
-                        onClick={() => setFormData({ ...formData, bloodGroup: type })}
+                        onClick={() =>
+                          setFormData({ ...formData, bloodGroup: type })
+                        }
                         className={`relative h-9 sm:h-10 rounded-xl font-extrabold text-xs sm:text-sm transition-all cursor-pointer hover:opacity-90 ${
-                          isActive ? 'text-white scale-105' : 'clay-btn-cream text-slate-700'
+                          isActive
+                            ? 'text-white scale-105'
+                            : 'clay-btn-cream text-slate-700'
                         }`}
                       >
                         {isActive && (
@@ -116,7 +126,11 @@ export const DonateModal = ({ isOpen, onClose }) => {
                             layoutId="donate-modal-blood-group"
                             className="absolute inset-0 clay-btn-crimson text-white transition-none!"
                             style={{ borderRadius: 12 }}
-                            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+                            transition={{
+                              type: 'spring',
+                              stiffness: 400,
+                              damping: 40,
+                            }}
                           />
                         )}
                         <span className="relative z-10">{type}</span>
@@ -136,7 +150,9 @@ export const DonateModal = ({ isOpen, onClose }) => {
                     type="text"
                     required
                     value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, city: e.target.value })
+                    }
                     placeholder="e.g. San Francisco"
                   />
                 </div>
@@ -150,7 +166,9 @@ export const DonateModal = ({ isOpen, onClose }) => {
                     max="65"
                     required
                     value={formData.age}
-                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, age: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -159,10 +177,14 @@ export const DonateModal = ({ isOpen, onClose }) => {
               <div className="p-3 rounded-2xl bg-amber-50/50 border border-amber-200 text-xs text-amber-900 space-y-1.5">
                 <div className="flex items-center gap-1.5">
                   <Shield className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span className="font-bold text-xs">Donor Eligibility Standard</span>
+                  <span className="font-bold text-xs">
+                    Donor Eligibility Standard
+                  </span>
                 </div>
                 <p className="text-[10px] sm:text-[11px] leading-relaxed text-slate-600">
-                  By joining, you confirm you are in good general health, weigh over 50kg (110 lbs), and haven't donated whole blood in the past 56 days.
+                  By joining, you confirm you are in good general health, weigh
+                  over 50kg (110 lbs), and haven't donated whole blood in the
+                  past 56 days.
                 </p>
               </div>
 
@@ -184,7 +206,9 @@ export const DonateModal = ({ isOpen, onClose }) => {
             </div>
 
             <div>
-              <DialogTitle className="text-center">You're Officially a Lifesaver!</DialogTitle>
+              <DialogTitle className="text-center">
+                You're Officially a Lifesaver!
+              </DialogTitle>
               <DialogDescription className="text-center">
                 Here is your verified BloodWeb Community Donor Card
               </DialogDescription>
@@ -196,33 +220,54 @@ export const DonateModal = ({ isOpen, onClose }) => {
               className="p-4 sm:p-6 bg-gradient-to-br from-white via-[#faf6f0] to-[#f4ebe0] text-left relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#d93829]/10 rounded-full blur-2xl pointer-events-none" />
-              
+
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-1.5">
                   <Droplets className="w-4 h-4 text-[#d93829]" />
-                  <span className="font-extrabold text-xs sm:text-sm tracking-tight text-[#1c1d22]">BloodWeb Verified Donor</span>
+                  <span className="font-extrabold text-xs sm:text-sm tracking-tight text-[#1c1d22]">
+                    BloodWeb Verified Donor
+                  </span>
                 </div>
-                <Badge variant="emerald" className="text-[9px] sm:text-[10px] uppercase tracking-wider flex items-center gap-1">
+                <Badge
+                  variant="emerald"
+                  className="text-[9px] sm:text-[10px] uppercase tracking-wider flex items-center gap-1"
+                >
                   <Check className="w-3 h-3 stroke-[3]" /> Active
                 </Badge>
               </div>
 
               <div className="flex items-center gap-3 my-2 sm:my-3">
-                <Avatar clayType={formData.avatarType} size={52} showBadge={true} badgeColor="crimson" />
+                <Avatar
+                  clayType={formData.avatarType}
+                  size={52}
+                  showBadge={true}
+                  badgeColor="crimson"
+                />
                 <div>
-                  <h4 className="text-base sm:text-lg font-black text-[#1c1d22]">{formData.fullName || 'Anonymous Donor'}</h4>
-                  <p className="text-xs text-[#575965]">{formData.city} • Verified Ready</p>
+                  <h4 className="text-base sm:text-lg font-black text-[#1c1d22]">
+                    {formData.fullName || 'Anonymous Donor'}
+                  </h4>
+                  <p className="text-xs text-[#575965]">
+                    {formData.city} • Verified Ready
+                  </p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="crimson" className="text-xs font-black">
                       Type {formData.bloodGroup}
                     </Badge>
-                    <span className="text-[10px] sm:text-[11px] text-slate-500 font-semibold">ID: #BW-{Math.floor(100000 + Math.random() * 900000)}</span>
+                    <span className="text-[10px] sm:text-[11px] text-slate-500 font-semibold">
+                      ID: #BW-{Math.floor(100000 + Math.random() * 900000)}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="mt-3 pt-2.5 border-t border-slate-200/80 flex items-center justify-between text-xs text-[#575965]">
-                <span className="text-[11px]">Emergency Broadcast: <strong className="text-emerald-600 font-bold">Enabled (10km)</strong></span>
+                <span className="text-[11px]">
+                  Emergency Broadcast:{' '}
+                  <strong className="text-emerald-600 font-bold">
+                    Enabled (10km)
+                  </strong>
+                </span>
                 <Award className="w-4 h-4 text-[#d93829]" />
               </div>
             </Card>

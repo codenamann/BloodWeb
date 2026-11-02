@@ -17,6 +17,7 @@ client.interceptors.response.use(
     error => {
         if (error.response && error.response.status === 401) {
             localStorage.removeItem('bloodweb_token');
+            localStorage.removeItem('bloodweb_user');
             const publicPaths = ['/login', '/register', '/verify-otp', '/'];
             if (!publicPaths.includes(window.location.pathname)) {
                 window.location.href = '/login';

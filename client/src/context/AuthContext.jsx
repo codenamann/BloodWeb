@@ -25,19 +25,34 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      // Restore cached profile immediately to prevent premature logout or UI flicker
+      const cachedUserStr = localStorage.getItem('bloodweb_user');
+      if (cachedUserStr) {
+        try {
+          setCurrentUser(JSON.parse(cachedUserStr));
+        } catch (_) {}
+      }
+
       try {
         const profileRes = await getUserProfile();
 
         if (profileRes.status === 'success' && profileRes.data?.user) {
           setCurrentUser(profileRes.data.user);
+          localStorage.setItem('bloodweb_user', JSON.stringify(profileRes.data.user));
         } else {
           localStorage.removeItem('bloodweb_token');
+          localStorage.removeItem('bloodweb_user');
           setCurrentUser(null);
         }
       } catch (err) {
-        console.error('Failed to fetch profile', err);
-        localStorage.removeItem('bloodweb_token');
-        setCurrentUser(null);
+        console.warn('Failed to fetch profile during session restore:', err);
+        // Only wipe token if the server explicitly rejected the token (401) or user was removed (404)
+        if (err.response?.status === 401 || err.response?.status === 404) {
+          localStorage.removeItem('bloodweb_token');
+          localStorage.removeItem('bloodweb_user');
+          setCurrentUser(null);
+        }
+        // Transient network drops, laptop wake-up, or temporary server reboots DO NOT wipe the token!
       } finally {
         setAuthLoading(false);
       }
@@ -54,20 +69,24 @@ export const AuthProvider = ({ children }) => {
       response.data.user
     ) {
       localStorage.setItem('bloodweb_token', response.data.token);
+      localStorage.setItem('bloodweb_user', JSON.stringify(response.data.user));
       setCurrentUser(response.data.user);
     }
 
     getUserProfile()
       .then((profileRes) => {
-        console.dir(profileRes);
         if (profileRes.status === 'success' && profileRes.data.user) {
           setCurrentUser(profileRes.data.user);
+          localStorage.setItem('bloodweb_user', JSON.stringify(profileRes.data.user));
         }
       })
       .catch((err) => {
-        console.error('Failed to restore session', err);
-        localStorage.removeItem('bloodweb_token');
-        setCurrentUser(null);
+        console.warn('Failed to refresh profile after login:', err);
+        if (err.response?.status === 401 || err.response?.status === 404) {
+          localStorage.removeItem('bloodweb_token');
+          localStorage.removeItem('bloodweb_user');
+          setCurrentUser(null);
+        }
       });
 
     return response;
@@ -86,6 +105,9 @@ export const AuthProvider = ({ children }) => {
 
     if (response.status === 'success') {
       setCurrentUser(response.data.user);
+      if (response.data.user) {
+        localStorage.setItem('bloodweb_user', JSON.stringify(response.data.user));
+      }
       if (response.data.token) {
         localStorage.setItem('bloodweb_token', response.data.token);
       }
@@ -95,12 +117,16 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('bloodweb_token');
+    localStorage.removeItem('bloodweb_user');
     disconnectSocket();
     setCurrentUser(null);
   };
 
   const updateUser = (userData) => {
     setCurrentUser(userData);
+    if (userData) {
+      localStorage.setItem('bloodweb_user', JSON.stringify(userData));
+    }
   };
 
   const updatePhone = async (phone) => {

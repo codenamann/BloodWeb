@@ -63,8 +63,16 @@ export const handleGetMyRequests = asyncHandler(async (req, res) => {
 });
 
 export const handleGetAllRequests = asyncHandler(async (req, res) => {
-    const { status, bloodGroup, page, limit, search, excludeUser, donorBloodGroup } = req.query;
-    const result = await getAllRequests({ status, bloodGroup, page, limit, search, excludeUser, donorBloodGroup });
+    const userId = req.user?.id || req.user?._id;
+    const { status, bloodGroup, page, limit, search } = req.query;
+    const result = await getAllRequests({
+        status,
+        bloodGroup,
+        page,
+        limit,
+        search,
+        userId
+    });
 
     res.status(200).json({
         status: 'success',

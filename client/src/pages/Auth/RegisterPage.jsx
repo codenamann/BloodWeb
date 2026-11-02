@@ -1,17 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Mail,
-  Lock,
-  User,
-  ArrowLeft,
-  ArrowRight,
-  ShieldCheck,
-} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { PasswordInput } from '../../components/ui';
 import ClayLogo from '../../components/ClayAssets/ClayLogo';
+import RegisterForm from './components/RegisterForm';
 
 export const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -56,7 +49,7 @@ export const RegisterPage = () => {
         err.response?.data?.message ||
           'An error occurred during registration. Please try again.'
       );
-      console.dir(err.response.data);
+      console.dir(err.response?.data);
     } finally {
       setIsLoading(false);
     }
@@ -95,100 +88,13 @@ export const RegisterPage = () => {
             </p>
           </div>
 
-          {error && (
-            <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs font-bold text-[#d93829]">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Full Name */}
-            <div>
-              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#575965] mb-1.5">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="e.g. Jordan Miller"
-                  className="w-full pl-10 pr-4 py-2.5 text-sm text-[#1c1d22] bg-[#faf7f2] rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30"
-                />
-              </div>
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#575965] mb-1.5">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  placeholder="name@example.com"
-                  className="w-full pl-10 pr-4 py-2.5 text-sm text-[#1c1d22] bg-[#faf7f2] rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30"
-                />
-              </div>
-            </div>
-
-            {/* Password & Confirm */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#575965] mb-1.5">
-                  Password
-                </label>
-                <PasswordInput
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  placeholder="Min 6 chars"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#575965] mb-1.5">
-                  Confirm Password
-                </label>
-                <PasswordInput
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      confirmPassword: e.target.value,
-                    })
-                  }
-                  placeholder="Repeat password"
-                  required
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3.5 clay-btn-crimson font-bold text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer"
-            >
-              <span>
-                {isLoading
-                  ? 'Creating Account...'
-                  : 'Continue to Email Verification'}
-              </span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
+          <RegisterForm
+            formData={formData}
+            setFormData={setFormData}
+            handleSubmit={handleSubmit}
+            isLoading={isLoading}
+            error={error}
+          />
 
           {/* Footer link to Login */}
           <div className="text-center text-xs text-[#575965] pt-2 border-t border-stone-100">

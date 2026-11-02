@@ -43,6 +43,21 @@ export async function updatePhone(req, res) {
     });
 }
 
+export async function updateContactInfo(req, res) {
+    const userId = req.user.id;
+    const { name, phone } = req.body;
+
+    const user = await userService.updateContactInfo(userId, { name, phone });
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Contact information updated successfully',
+        data: {
+            user
+        }
+    });
+}
+
 export async function updateBloodGroup(req, res) {
     const userId = req.user.id;
     const { bloodGroup } = req.body;
@@ -82,6 +97,25 @@ export async function toggleAvailability(req, res) {
         message: 'Availability toggled successfully',
         data: {
             availability: user.availability
+        }
+    });
+}
+
+export async function updateDonorReadiness(req, res) {
+    const userId = req.user.id || req.user._id;
+    const { bloodGroup, location, availability } = req.body;
+
+    const user = await userService.updateDonorReadiness(userId, {
+        bloodGroup,
+        location,
+        availability
+    });
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Donor readiness updated successfully',
+        data: {
+            user
         }
     });
 }

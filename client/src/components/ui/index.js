@@ -6,3 +6,4 @@ export * from './dialog';
 export * from './input';
 export * from './textarea';
 export * from './passwordInput';
+export * from './ClayButton';
