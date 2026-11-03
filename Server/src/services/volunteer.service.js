@@ -17,6 +17,7 @@ import { emitToRoom, emitToRequest } from "../utils/socket.js";
 import {
     notifyVolunteerResponse,
     notifyVolunteerAccepted,
+    notifyVolunteerAcceptedMutual,
     notifyVolunteerBackup,
     notifyVolunteerWithdrawn
 } from "./notification.service.js";
@@ -67,18 +68,37 @@ export async function createVolunteerResponse(requestId, donorId, locationAtResp
     }
 
     // 3. Service-level check for duplicate responses
-    const alreadyVolunteered = await VolunteerResponse.exists({ requestId, donorId });
-    if (alreadyVolunteered) {
+    const existingResponse = await VolunteerResponse.findOne({ requestId, donorId });
+    if (existingResponse && existingResponse.status !== 'WITHDRAWN') {
         throw new AppError('You have already volunteered for this request', 409);
     }
 
     // 4. Fetch Donor User & verify profile completeness
-    const donorUser = await User.findById(donorId).select('name bloodGroup location');
+    const donorUser = await User.findById(donorId).select('name bloodGroup location phone dob');
     if (!donorUser) {
         throw new AppError('Donor user not found', 404);
     }
     if (!donorUser.bloodGroup) {
         throw new AppError('Donor blood group must be set before volunteering', 400);
+    }
+    if (!donorUser.phone) {
+        throw new AppError('Mobile number is required before volunteering so the requester can contact you', 400);
+    }
+    if (!donorUser.dob) {
+        throw new AppError('Date of birth is required before volunteering', 400);
+    }
+    const birthDate = new Date(donorUser.dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    if (isNaN(age) || age < 18) {
+        throw new AppError('You must be at least 18 years old to volunteer as a blood donor', 400);
+    }
+    if (!donorUser.location || !donorUser.location.coordinates || !donorUser.location.city) {
+        throw new AppError('Donor location must be configured before volunteering', 400);
     }
 
     // 5. Server-side blood compatibility enforcement
@@ -140,23 +160,39 @@ export async function createVolunteerResponse(requestId, donorId, locationAtResp
         }
     }
 
-    // 7. Persist VolunteerResponse with duplicate-key race protection
+    // 7. Persist or reactivate VolunteerResponse with duplicate-key race protection
     let volunteerDoc;
-    try {
-        volunteerDoc = await VolunteerResponse.create({
-            requestId,
-            donorId,
-            locationAtResponse: donorCoords,
-            estimatedDistanceKm,
-        });
-    } catch (err) {
-        if (
-            err.code === 11000 ||
-            (err.name === 'MongoServerError' && err.message?.includes('duplicate key'))
-        ) {
-            throw new AppError('You have already volunteered for this request', 409);
+    if (existingResponse && existingResponse.status === 'WITHDRAWN') {
+        existingResponse.status = 'PENDING';
+        existingResponse.locationAtResponse = donorCoords;
+        existingResponse.estimatedDistanceKm = estimatedDistanceKm;
+        volunteerDoc = await existingResponse.save();
+    } else {
+        try {
+            volunteerDoc = await VolunteerResponse.create({
+                requestId,
+                donorId,
+                locationAtResponse: donorCoords,
+                estimatedDistanceKm,
+            });
+        } catch (err) {
+            if (
+                err.code === 11000 ||
+                (err.name === 'MongoServerError' && err.message?.includes('duplicate key'))
+            ) {
+                const raced = await VolunteerResponse.findOne({ requestId, donorId });
+                if (raced && raced.status === 'WITHDRAWN') {
+                    raced.status = 'PENDING';
+                    raced.locationAtResponse = donorCoords;
+                    raced.estimatedDistanceKm = estimatedDistanceKm;
+                    volunteerDoc = await raced.save();
+                } else {
+                    throw new AppError('You have already volunteered for this request', 409);
+                }
+            } else {
+                throw err;
+            }
         }
-        throw err;
     }
 
     // 8. Safe Coordination Room initialization (first volunteer triggers room creation)
@@ -206,8 +242,8 @@ export async function updateVolunteerStatus(responseId, requestorId, newStatus) 
     }
 
     const request = await BloodRequest.findById(volunteerResponse.requestId)
-        .populate('hospitalId', 'name')
-        .select('createdBy status unitsNeeded hospitalId');
+        .populate('hospitalId', 'name address city state')
+        .select('createdBy status unitsNeeded hospitalId patientBloodGroup');
     if (!request) {
         throw new AppError('Associated blood request not found', 404);
     }
@@ -239,7 +275,10 @@ export async function updateVolunteerStatus(responseId, requestorId, newStatus) 
         await syncRequestFulfillmentStatus(volunteerResponse.requestId);
     }
 
-    const donorUser = await User.findById(volunteerResponse.donorId).select('name');
+    const [donorUser, requesterUser] = await Promise.all([
+        User.findById(volunteerResponse.donorId).select('name email phone bloodGroup'),
+        User.findById(request.createdBy).select('name email phone')
+    ]);
     const hospitalName = request.hospitalId?.name || 'the hospital';
 
     // Post automated system message to coordination room and dispatch notifications
@@ -257,7 +296,11 @@ export async function updateVolunteerStatus(responseId, requestorId, newStatus) 
                     `${donorUser?.name || 'A volunteer'} has been accepted to donate.`
                 );
             }
-            await notifyVolunteerAccepted(volunteerResponse.requestId, volunteerResponse.donorId, hospitalName);
+            await notifyVolunteerAcceptedMutual({
+                request,
+                donorUser,
+                requesterUser
+            });
         } else if (newStatus === 'BACKUP') {
             if (room) {
                 await sendSystemMessage(
@@ -361,7 +404,7 @@ export async function getVolunteersForRequest(requestId) {
         throw new AppError('Invalid request ID format', 400);
     }
     const volunteerResponses = await VolunteerResponse.find({ requestId })
-        .populate('donorId', 'name bloodGroup avatarType email phone')
+        .populate('donorId', 'name bloodGroup avatar email phone')
         .lean();
 
     return volunteerResponses;

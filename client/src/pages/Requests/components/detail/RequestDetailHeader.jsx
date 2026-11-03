@@ -1,6 +1,13 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Trash2, MessageSquare } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Trash2,
+  MessageSquare,
+  Heart,
+  RefreshCw,
+} from 'lucide-react';
 
 export const RequestDetailHeader = ({
   request,
@@ -15,6 +22,9 @@ export const RequestDetailHeader = ({
   completing,
   cancelling,
   actionLoading,
+  alreadyVolunteered,
+  isCompatible,
+  handleVolunteer,
 }) => {
   const navigate = useNavigate();
 
@@ -38,12 +48,12 @@ export const RequestDetailHeader = ({
               request.status === 'ACTIVE'
                 ? 'bg-emerald-100 text-emerald-800'
                 : request.status === 'CANCELLED'
-                ? 'bg-red-100 text-[#d93829]'
-                : request.status === 'PARTIALLY_FULFILLED'
-                ? 'bg-amber-100 text-amber-800'
-                : request.status === 'FULFILLED'
-                ? 'bg-blue-100 text-blue-800'
-                : 'bg-stone-100 text-stone-700'
+                  ? 'bg-red-100 text-[#d93829]'
+                  : request.status === 'PARTIALLY_FULFILLED'
+                    ? 'bg-amber-100 text-amber-800'
+                    : request.status === 'FULFILLED'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-stone-100 text-stone-700'
             }`}
           >
             {request.status?.replace('_', ' ')}
@@ -51,17 +61,18 @@ export const RequestDetailHeader = ({
         </div>
 
         <p className="text-xs text-stone-500 font-medium mt-1">
-          Request ID: <span className="font-bold text-stone-800">#{request._id}</span>
+          Request ID:{' '}
+          <span className="font-bold text-stone-800">#{request._id}</span>
           {formattedCreatedAt && <> • Created on {formattedCreatedAt}</>}
         </p>
       </div>
 
-      {/* Requester Actions / Coordination Room */}
+      {/* Header Actions: Requester Controls or Volunteer/Coordination Action */}
       <div className="flex items-center gap-2 self-start sm:self-auto">
         {isRequester && !isTerminal && (
           <div className="flex items-center gap-2">
-            {hasAcceptedVolunteers && (
-              confirmingComplete ? (
+            {hasAcceptedVolunteers &&
+              (confirmingComplete ? (
                 <div className="flex items-center gap-1.5 animate-fadeIn">
                   <button
                     onClick={handleCompleteRequest}
@@ -88,8 +99,7 @@ export const RequestDetailHeader = ({
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Mark Completed</span>
                 </button>
-              )
-            )}
+              ))}
             <button
               onClick={handleCancelRequest}
               disabled={cancelling || completing || actionLoading}
@@ -101,13 +111,34 @@ export const RequestDetailHeader = ({
           </div>
         )}
 
-        <button
-          onClick={() => navigate(`/coordination/${request._id}`)}
-          className="clay-btn-crimson px-4 py-2.5 text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
-        >
-          <MessageSquare className="w-4 h-4" />
-          <span>Coordination Room</span>
-        </button>
+        {/* Dynamic Action: Coordination Room when authorized, or Volunteer to Donate when not */}
+        {isRequester || alreadyVolunteered ? (
+          <button
+            onClick={() => navigate(`/coordination/${request._id}`)}
+            className="clay-btn-crimson px-4 py-2.5 text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Coordination Room</span>
+          </button>
+        ) : (
+          !isTerminal &&
+          isCompatible && (
+            <button
+              onClick={handleVolunteer}
+              disabled={actionLoading}
+              className="clay-btn-crimson px-5 py-3 text-xs font-black text-white flex items-center gap-2 shadow-sm transition-transform hover:scale-[1.02] active:scale-95 cursor-pointer disabled:opacity-50"
+            >
+              {actionLoading ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Heart className="w-3.5 h-3.5 fill-white" />
+              )}
+              <span>
+                {actionLoading ? 'Submitting...' : 'Volunteer to Donate'}
+              </span>
+            </button>
+          )
+        )}
       </div>
     </div>
   );

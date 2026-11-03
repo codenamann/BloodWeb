@@ -397,9 +397,9 @@
   animation: pulse-ring 3s ease-in-out infinite;
 }
 
-/* Custom Soft Scrollbar */
+/* Custom Soft Scrollbar for Body */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -407,13 +407,50 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #fcdaa1;
+  background: #e2dcd5;
   border-radius: 9999px;
-  border: 2px solid var(--clay-bg-canvas);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #c5b8a66e;
+  background: #c5b8a6;
+}
+
+/* Semi-transparent unnoticeable 2.5px Floating Scrollbar */
+.custom-scrollbar-2px {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 162, 158, 0.25) transparent;
+}
+
+.custom-scrollbar-2px::-webkit-scrollbar {
+  width: 2.5px;
+  height: 0px;
+}
+
+.custom-scrollbar-2px::-webkit-scrollbar:horizontal {
+  display: none !important;
+  height: 0 !important;
+  width: 0 !important;
+}
+
+.custom-scrollbar-2px::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.custom-scrollbar-2px::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.custom-scrollbar-2px::-webkit-scrollbar-thumb {
+  background: rgba(168, 162, 158, 0.25);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar-2px:hover::-webkit-scrollbar-thumb,
+.custom-scrollbar-2px::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 113, 108, 0.55);
 }
 
 

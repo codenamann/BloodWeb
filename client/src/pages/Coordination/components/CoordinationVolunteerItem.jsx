@@ -1,5 +1,4 @@
 import React from 'react';
-import { Phone } from 'lucide-react';
 import ClayAvatar from '../../../components/ClayAssets/ClayAvatar';
 
 export const CoordinationVolunteerItem = ({
@@ -15,115 +14,147 @@ export const CoordinationVolunteerItem = ({
   const isPending = volunteer.status === 'PENDING';
   const isBackup = volunteer.status === 'BACKUP';
 
+  const statusConfig = isAccepted
+    ? {
+        label: 'Accepted',
+        dotClass: 'bg-emerald-500',
+        tooltipClass: 'bg-emerald-50 text-emerald-800 border-emerald-100',
+        arrowClass: 'bg-emerald-50 border-emerald-100',
+      }
+    : isPending
+      ? {
+          label: 'Pending',
+          dotClass: 'bg-amber-500',
+          tooltipClass: 'bg-amber-50 text-amber-900 border-amber-100',
+          arrowClass: 'bg-amber-50 border-amber-100',
+        }
+      : isBackup
+        ? {
+            label: 'Backup',
+            dotClass: 'bg-blue-500',
+            tooltipClass: 'bg-blue-50 text-blue-900 border-blue-100',
+            arrowClass: 'bg-blue-50 border-blue-100',
+          }
+        : {
+            label: volunteer.status || 'Status',
+            dotClass: 'bg-stone-400',
+            tooltipClass: 'bg-stone-50 text-stone-700 border-stone-200/60',
+            arrowClass: 'bg-stone-50 border-stone-200/60',
+          };
+
   return (
     <div
-      className={`p-3 rounded-xl border flex flex-col gap-2 transition-all ${
+      className={`group p-3 rounded-xl border flex flex-col gap-2 transition-all ${
         isAccepted
           ? 'bg-emerald-50/50 border-emerald-100'
           : isPending
-          ? 'bg-amber-50/40 border-amber-100'
-          : 'bg-stone-50 border-stone-100'
+            ? 'bg-amber-50/40 border-amber-100'
+            : 'bg-stone-50 border-stone-100'
       }`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <ClayAvatar
-            type={donorInfo.avatarType || 'alex'}
+            src={donorInfo.avatar}
+            type="neutral"
             size={32}
             showBadge={false}
           />
           <div>
             <div className="text-xs font-bold text-stone-800">
-              {donorInfo.name || 'Verified Donor'}
+              {donorInfo.name || 'Verified Donor'}{' '}
+              <span className="text-[10px] text-stone-500">
+                ({donorInfo.bloodGroup || request.patientBloodGroup})
+              </span>
             </div>
             <div className="text-[10px] text-stone-400 font-medium">
-              Type {donorInfo.bloodGroup || request.patientBloodGroup}
               {volunteer.estimatedDistanceKm != null &&
-                ` • ${volunteer.estimatedDistanceKm} km`}
+                `${volunteer.estimatedDistanceKm} km away`}
             </div>
           </div>
         </div>
 
-        <span
-          className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
-            isAccepted
-              ? 'bg-emerald-100 text-emerald-800'
-              : isPending
-              ? 'bg-amber-100 text-amber-900'
-              : 'bg-blue-100 text-blue-900'
-          }`}
-        >
-          {volunteer.status}
-        </span>
+        {/* Status Dot with Hover Colored Tooltip */}
+        <div className="relative group/status flex items-center justify-center shrink-0 pr-1 py-1">
+          <span
+            role="status"
+            aria-label={`Status: ${statusConfig.label}`}
+            className={`w-2.5 h-2.5 rounded-full ${statusConfig.dotClass} cursor-default`}
+          />
+
+          {/* Colored Aria Label Tooltip (Positioned Above Dot, Right-Aligned to prevent overflow) */}
+          <div
+            role="tooltip"
+            className={`absolute bottom-full mb-1.5 right-0 pointer-events-none opacity-0 group-hover/status:opacity-100 transition-opacity duration-150 ease-out z-30 px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider uppercase whitespace-nowrap shadow-xs border ${statusConfig.tooltipClass}`}
+          >
+            {statusConfig.label}
+            {/* Arrow pointing downwards towards the dot */}
+            <div
+              className={`absolute top-full right-1.5 -mt-1 w-1.5 h-1.5 rotate-45 border-b border-r ${statusConfig.arrowClass}`}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Contact information for accepted donors (Mutual trust boundary) */}
-      {donorInfo.phone && (
-        <div className="pt-1.5 border-t border-emerald-100 flex items-center justify-between text-[10px]">
-          <span className="text-stone-500 font-medium">Donor Phone:</span>
-          <a
-            href={`tel:${donorInfo.phone}`}
-            className="font-bold text-emerald-800 flex items-center gap-1 hover:underline"
-          >
-            <Phone className="w-2.5 h-2.5" />
-            {donorInfo.phone}
-          </a>
-        </div>
-      )}
-
-      {/* Requester Volunteer Management Controls */}
+      {/* Volunteer Actions (Zero height when unhovered, expands smoothly to fit buttons on hover) */}
       {isRequester && !isClosed && (
-        <div className="pt-1.5 border-t border-stone-200/50 flex items-center gap-1.5 justify-end">
-          {isPending && (
-            <>
-              <button
-                type="button"
-                disabled={updatingVolunteerId === volunteer._id}
-                onClick={() =>
-                  handleVolunteerStatusUpdate(volunteer._id, 'ACCEPTED')
-                }
-                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
-              >
-                {updatingVolunteerId === volunteer._id ? 'Updating...' : 'Accept'}
-              </button>
-              <button
-                type="button"
-                disabled={updatingVolunteerId === volunteer._id}
-                onClick={() =>
-                  handleVolunteerStatusUpdate(volunteer._id, 'BACKUP')
-                }
-                className="px-2.5 py-1 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 text-[10px] font-bold cursor-pointer disabled:opacity-50 transition-colors"
-              >
-                Backup
-              </button>
-            </>
-          )}
+        <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-250 ease-out">
+          <div className="overflow-hidden">
+            <div className="pt-2 border-t border-stone-200/60 flex items-center gap-2 w-full opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              {isPending && (
+                <>
+                  <button
+                    type="button"
+                    disabled={updatingVolunteerId === volunteer._id}
+                    onClick={() =>
+                      handleVolunteerStatusUpdate(volunteer._id, 'ACCEPTED')
+                    }
+                    className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black cursor-pointer disabled:opacity-50 transition-colors shadow-xs text-center"
+                  >
+                    {updatingVolunteerId === volunteer._id
+                      ? 'Updating...'
+                      : 'Accept'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingVolunteerId === volunteer._id}
+                    onClick={() =>
+                      handleVolunteerStatusUpdate(volunteer._id, 'BACKUP')
+                    }
+                    className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 text-[11px] font-bold cursor-pointer disabled:opacity-50 transition-colors text-center"
+                  >
+                    Backup
+                  </button>
+                </>
+              )}
 
-          {isAccepted && (
-            <button
-              type="button"
-              disabled={updatingVolunteerId === volunteer._id}
-              onClick={() =>
-                handleVolunteerStatusUpdate(volunteer._id, 'BACKUP')
-              }
-              className="text-[9px] font-bold text-stone-500 hover:text-stone-800 underline cursor-pointer disabled:opacity-50"
-            >
-              Move to Backup
-            </button>
-          )}
+              {isAccepted && (
+                <button
+                  type="button"
+                  disabled={updatingVolunteerId === volunteer._id}
+                  onClick={() =>
+                    handleVolunteerStatusUpdate(volunteer._id, 'BACKUP')
+                  }
+                  className="w-full py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 border border-stone-200 text-[11px] font-bold cursor-pointer disabled:opacity-50 transition-colors text-center"
+                >
+                  Move to Backup
+                </button>
+              )}
 
-          {isBackup && (
-            <button
-              type="button"
-              disabled={updatingVolunteerId === volunteer._id}
-              onClick={() =>
-                handleVolunteerStatusUpdate(volunteer._id, 'ACCEPTED')
-              }
-              className="px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[9px] font-black cursor-pointer disabled:opacity-50 transition-colors"
-            >
-              Promote to Accepted
-            </button>
-          )}
+              {isBackup && (
+                <button
+                  type="button"
+                  disabled={updatingVolunteerId === volunteer._id}
+                  onClick={() =>
+                    handleVolunteerStatusUpdate(volunteer._id, 'ACCEPTED')
+                  }
+                  className="w-full py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-black cursor-pointer disabled:opacity-50 transition-colors text-center"
+                >
+                  Promote to Accepted
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

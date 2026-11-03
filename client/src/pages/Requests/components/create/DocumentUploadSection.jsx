@@ -23,7 +23,7 @@ export const DocumentUploadSection = ({ uploadedFileName, onFileUpload }) => {
           type="file"
           onChange={onFileUpload}
           className="absolute inset-0 opacity-0 cursor-pointer"
-          accept=".pdf,.jpg,.jpeg,.png"
+          accept=".pdf,.jpg,.jpeg,.png,.webp"
         />
         <div className="space-y-2">
           <div className="w-10 h-10 mx-auto rounded-2xl bg-stone-100 flex items-center justify-center text-stone-600">
@@ -33,7 +33,7 @@ export const DocumentUploadSection = ({ uploadedFileName, onFileUpload }) => {
             {uploadedFileName ? uploadedFileName : 'Upload Document'}
           </div>
           <p className="text-[10px] text-stone-400 font-semibold">
-            PDF, JPG or PNG (Max 5MB)
+            PDF, JPG, PNG, WebP (Images auto-optimized to WebP)
           </p>
         </div>
       </div>

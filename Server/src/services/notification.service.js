@@ -1,6 +1,10 @@
 import env from "../config/env.js";
 import Notification from "../models/Notification.model.js";
 import bloodRequestTemplate from "../templates/bloodRequest.template.js";
+import {
+    donorAcceptedEmailTemplate,
+    requesterAcceptedEmailTemplate
+} from "../templates/volunteerAccepted.template.js";
 import { sendEmail } from "../utils/email.js";
 import logger from "../utils/logger.js";
 import { emitToUser } from "../utils/socket.js";
@@ -135,6 +139,94 @@ export async function notifyVolunteerAccepted(requestId, donorId, hospitalName =
             }
         ]
     });
+}
+
+export async function notifyVolunteerAcceptedMutual({ request, donorUser, requesterUser }) {
+    if (!donorUser || !requesterUser) return;
+
+    const requestId = request._id || request.id;
+    const hospitalName = request.hospitalId?.name || 'the hospital';
+    const hospitalAddress = [request.hospitalId?.address, request.hospitalId?.city].filter(Boolean).join(', ');
+    const patientBloodGroup = request.patientBloodGroup || donorUser.bloodGroup || 'compatible';
+    const coordinationUrl = `${FRONTEND_URL}/coordination/${requestId}`;
+
+    const donorPhoneText = requesterUser.phone ? `Phone: ${requesterUser.phone}` : 'Phone not set';
+    const volunteerPhoneText = donorUser.phone ? `Phone: ${donorUser.phone}` : 'Phone not set';
+
+    // 1. In-App Notification to Volunteer / Donor
+    await createInAppNotification({
+        userId: donorUser._id,
+        type: 'ACTIONABLE',
+        title: 'Volunteer Offer Accepted!',
+        body: `Your offer to donate at ${hospitalName} was accepted! Coordinator: ${requesterUser.name} (${donorPhoneText}, ${requesterUser.email}). Open Coordination Room to coordinate.`,
+        redirectUrl: `/coordination/${requestId}`,
+        actions: [
+            {
+                label: 'Open Coordination Room',
+                url: `/coordination/${requestId}`
+            }
+        ]
+    });
+
+    // 2. Email Notification to Volunteer / Donor
+    if (donorUser.email) {
+        try {
+            const donorEmailHtml = donorAcceptedEmailTemplate({
+                donorName: donorUser.name,
+                requesterName: requesterUser.name,
+                requesterPhone: requesterUser.phone,
+                requesterEmail: requesterUser.email,
+                hospitalName,
+                hospitalAddress,
+                bloodGroup: patientBloodGroup,
+                coordinationUrl,
+            });
+            await sendEmail({
+                to: donorUser.email,
+                subject: `BloodWeb — Volunteer Accepted! Contact Details for ${hospitalName}`,
+                emailBody: donorEmailHtml,
+            });
+        } catch (emailErr) {
+            logger.warn(`[NOTIFY ACCEPTED WARN] Failed to send email to donor ${donorUser.email}: ${emailErr.message}`);
+        }
+    }
+
+    // 3. In-App Notification to Requester / Coordinator
+    await createInAppNotification({
+        userId: requesterUser._id,
+        type: 'ACTIONABLE',
+        title: 'Donor Accepted — Contact Details',
+        body: `You accepted ${donorUser.name} (${donorUser.bloodGroup || patientBloodGroup}). ${volunteerPhoneText}, ${donorUser.email}. Connect now to coordinate.`,
+        redirectUrl: `/coordination/${requestId}`,
+        actions: [
+            {
+                label: 'Open Coordination Room',
+                url: `/coordination/${requestId}`
+            }
+        ]
+    });
+
+    // 4. Email Notification to Requester / Coordinator
+    if (requesterUser.email) {
+        try {
+            const requesterEmailHtml = requesterAcceptedEmailTemplate({
+                requesterName: requesterUser.name,
+                donorName: donorUser.name,
+                donorPhone: donorUser.phone,
+                donorEmail: donorUser.email,
+                donorBloodGroup: donorUser.bloodGroup || patientBloodGroup,
+                hospitalName,
+                coordinationUrl,
+            });
+            await sendEmail({
+                to: requesterUser.email,
+                subject: `BloodWeb — Donor Accepted! Contact Details for ${donorUser.name}`,
+                emailBody: requesterEmailHtml,
+            });
+        } catch (emailErr) {
+            logger.warn(`[NOTIFY ACCEPTED WARN] Failed to send email to requester ${requesterUser.email}: ${emailErr.message}`);
+        }
+    }
 }
 
 export async function notifyVolunteerBackup(requestId, donorId, hospitalName = 'Hospital') {

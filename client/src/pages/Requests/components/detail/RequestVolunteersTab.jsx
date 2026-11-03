@@ -39,7 +39,8 @@ export const RequestVolunteersTab = ({
               >
                 <div className="flex items-center gap-3.5">
                   <ClayAvatar
-                    type={resp.donor?.avatarType || 'alex'}
+                    src={resp.donor?.avatar}
+                    type="neutral"
                     size={44}
                     showBadge={false}
                   />

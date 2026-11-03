@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useBloodRequests } from '../../../context/BloodRequestContext';
 
+import { optimizeDocumentFile } from '../../../utils/imageOptimizer';
+
 export const useCreateRequestPage = () => {
   const { currentUser, updateUser } = useAuth();
   const { createRequest } = useBloodRequests();
@@ -49,21 +51,29 @@ export const useCreateRequestPage = () => {
     setFormData((prev) => ({ ...prev, hospitalId: hosp ? hosp._id : '' }));
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const allowed = ['application/pdf', 'image/jpeg', 'image/png'];
+      const allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
       if (!allowed.includes(file.type)) {
-        setFormError('Only PDF, JPG, and PNG are allowed');
+        setFormError('Only PDF, JPG, PNG, and WebP are allowed');
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        setFormError('File size must be under 5MB');
+      if (file.size > 10 * 1024 * 1024) {
+        setFormError('File size must be under 10MB');
         return;
       }
       setFormError(null);
-      setUploadedFileName(file.name);
-      setFormData((prev) => ({ ...prev, hospitalDocument: file }));
+
+      // Automatically optimize images to high-resolution, compressed WebP
+      const { file: processedFile, isOptimized, finalSize } = await optimizeDocumentFile(file);
+      const sizeKb = Math.round(finalSize / 1024);
+      setUploadedFileName(
+        isOptimized
+          ? `${processedFile.name} (Optimized WebP • ${sizeKb} KB)`
+          : `${processedFile.name} (${sizeKb} KB)`
+      );
+      setFormData((prev) => ({ ...prev, hospitalDocument: processedFile }));
     }
   };
 

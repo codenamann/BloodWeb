@@ -23,9 +23,10 @@ export async function getCoordinationMessages(requestId) {
  * @param {string} requestId 
  * @param {string} text 
  */
-export async function sendCoordinationMessage(requestId, text) {
+export async function sendCoordinationMessage(requestId, text, replyTo = null) {
     const { data } = await client.post(`/api/coordination/${requestId}/messages`, {
-        text
+        text,
+        replyTo
     });
     return data.data?.message;
 }

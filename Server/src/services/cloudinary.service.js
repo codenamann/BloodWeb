@@ -34,9 +34,14 @@ export async function uploadToCloudinary(file) {
 
         const options = {
             folder: UPLOAD_FOLDER,
-            resource_type: 'auto',
+            resource_type: isPdf ? 'raw' : 'image',
             use_filename: false,
             unique_filename: true,
+            ...(isPdf ? {} : {
+                transformation: [
+                    { quality: 'auto:good', fetch_format: 'auto' }
+                ]
+            })
         };
 
         const result = await new Promise((resolve, reject) => {
@@ -81,3 +86,47 @@ export async function deleteFromCloudinary(publicId) {
         throw new AppError('Cloudinary deletion failed', 502);
     }
 }
+
+const AVATAR_FOLDER = 'bloodweb/avatars';
+
+/**
+ * Upload an avatar image buffer to Cloudinary with facial centering and optimization.
+ * @param {Object} file - The file object from multer (must have buffer, mimetype, size)
+ * @returns {Promise<Object>} Avatar metadata { url, storageKey }
+ */
+export async function uploadAvatarToCloudinary(file) {
+    if (!file || !file.buffer) {
+        throw new AppError('Invalid file provided for avatar upload (missing buffer).', 400);
+    }
+
+    try {
+        const options = {
+            folder: AVATAR_FOLDER,
+            resource_type: 'image',
+            transformation: [
+                { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+                { quality: 'auto', fetch_format: 'auto' }
+            ],
+            unique_filename: true,
+        };
+
+        const result = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(options, (error, uploadResult) => {
+                if (error) return reject(error);
+                resolve(uploadResult);
+            });
+            stream.end(file.buffer);
+        });
+
+        logger.info(`[CLOUDINARY] Avatar uploaded successfully: ${result.public_id}`);
+
+        return {
+            url: result.secure_url,
+            storageKey: result.public_id,
+        };
+    } catch (err) {
+        logger.error(`[CLOUDINARY ERROR] Avatar upload failed: ${err.message}`, { error: err });
+        throw new AppError('Avatar upload failed. Please try again.', 502);
+    }
+}
+

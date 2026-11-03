@@ -14,6 +14,31 @@ import { updateVolunteerStatus } from '../../../api/volunteer.api';
 import { subscribeToCoordinationRoom } from '../../../services/socket';
 import { toast } from '../../../components/ui/toast';
 
+const safeAppendMessage = (prev, newMsg) => {
+  if (!newMsg) return prev;
+  const targetId = (newMsg._id || newMsg.id)?.toString();
+  if (targetId && prev.some((m) => (m._id || m.id)?.toString() === targetId)) {
+    return prev.map((m) => ((m._id || m.id)?.toString() === targetId ? newMsg : m));
+  }
+
+  // Reconcile optimistic messages
+  const optIdx = prev.findIndex((m) => {
+    if (!m.isOptimistic) return false;
+    const sameText = (m.text || m.content) === (newMsg.text || newMsg.content);
+    const mSender = typeof m.senderId === 'object' ? m.senderId?._id : m.senderId;
+    const nSender = typeof newMsg.senderId === 'object' ? newMsg.senderId?._id : newMsg.senderId;
+    return sameText && mSender?.toString() === nSender?.toString();
+  });
+
+  if (optIdx !== -1) {
+    const next = [...prev];
+    next[optIdx] = newMsg;
+    return next;
+  }
+
+  return [...prev, newMsg];
+};
+
 export const useCoordinationRoomPage = (requestId, currentUser) => {
   const [request, setRequest] = useState(null);
   const [room, setRoom] = useState(null);
@@ -29,6 +54,7 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
   const [isSending, setIsSending] = useState(false);
   const [isActionPending, setIsActionPending] = useState(false);
   const [updatingVolunteerId, setUpdatingVolunteerId] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
 
   const messagesEndRef = useRef(null);
 
@@ -82,10 +108,7 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
 
     const cleanup = subscribeToCoordinationRoom(requestId, {
       NEW_MESSAGE: (newMsg) => {
-        setMessages((prev) => {
-          if (prev.some((m) => m._id === newMsg._id)) return prev;
-          return [...prev, newMsg];
-        });
+        setMessages((prev) => safeAppendMessage(prev, newMsg));
       },
       MESSAGE_PINNED: ({ pinnedMessage }) => {
         setRoom((prev) => (prev ? { ...prev, pinnedMessageId: pinnedMessage } : prev));
@@ -176,26 +199,70 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
   const pinnedText = room?.pinnedMessageId?.text || null;
 
   const handleSend = async (e) => {
-    e.preventDefault();
-    if (!inputMessage.trim() || isClosed || cooldownRemaining > 0 || isSending) return;
-
+    e?.preventDefault?.();
     const textToSend = inputMessage.trim();
-    setIsSending(true);
+    if (!textToSend || isClosed || cooldownRemaining > 0) return;
+
+    const currentReplying = replyingTo;
+    const replyPayload = currentReplying
+      ? {
+          messageId: currentReplying._id,
+          senderName:
+            (typeof currentReplying.senderId === 'object' ? currentReplying.senderId?.name : null) ||
+            (currentReplying.senderId === currentUser?._id ? 'You' : 'Participant'),
+          text: currentReplying.text || currentReplying.content || '',
+        }
+      : null;
+
+    // Instant optimistic UX: Clear input and reply banner immediately
+    setInputMessage('');
+    setReplyingTo(null);
+
+    const tempId = `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const optimisticMsg = {
+      _id: tempId,
+      id: tempId,
+      roomId: room?._id || requestId,
+      senderId: currentUser,
+      type: 'USER',
+      text: textToSend,
+      replyTo: currentReplying
+        ? {
+            messageId: currentReplying._id,
+            senderName:
+              (typeof currentReplying.senderId === 'object' ? currentReplying.senderId?.name : null) ||
+              (currentReplying.senderId === currentUser?._id ? 'You' : 'Participant'),
+            text: currentReplying.text || currentReplying.content || '',
+          }
+        : null,
+      createdAt: new Date().toISOString(),
+      isOptimistic: true,
+    };
+
+    setMessages((prev) => [...prev, optimisticMsg]);
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 10);
+
+    if (cooldownEnabled && !isRequester) {
+      setCooldownRemaining(room?.messageCooldownSeconds || 3);
+    }
 
     try {
-      const newMsg = await sendCoordinationMessage(requestId, textToSend);
-      setMessages((prev) => [...prev, newMsg]);
-      setInputMessage('');
-
-      if (cooldownEnabled && !isRequester) {
-        setCooldownRemaining(room?.messageCooldownSeconds || 3);
+      setIsSending(true);
+      const newMsg = await sendCoordinationMessage(requestId, textToSend, replyPayload);
+      if (newMsg) {
+        setMessages((prev) => safeAppendMessage(prev, newMsg));
       }
     } catch (err) {
+      // Revert optimistic message on failure
+      setMessages((prev) => prev.filter((m) => (m._id || m.id) !== tempId));
       if (err.response?.status === 429) {
         const remaining = err.response.data?.data?.cooldownRemaining || 3;
         setCooldownRemaining(remaining);
       } else {
-        alert(err.response?.data?.message || 'Failed to send message');
+        toast.error('Message failed', err.response?.data?.message || 'Could not send message.');
+        setInputMessage(textToSend);
       }
     } finally {
       setIsSending(false);
@@ -208,7 +275,9 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
 
     try {
       const newMsg = await sendCoordinationQuickAction(requestId, actionType);
-      setMessages((prev) => [...prev, newMsg]);
+      if (newMsg) {
+        setMessages((prev) => safeAppendMessage(prev, newMsg));
+      }
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to broadcast quick action');
     } finally {
@@ -225,6 +294,20 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
       setRoom(updated);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update cooldown settings');
+    }
+  };
+
+  const handleUpdateCooldown = async ({ enabled, seconds }) => {
+    if (!isRequester || isClosed) return false;
+    try {
+      const updated = await updateCoordinationCooldown(requestId, { enabled, seconds });
+      setCooldownEnabled(updated.cooldownEnabled);
+      setRoom(updated);
+      toast.success('Cooldown Updated', `Cooldown ${enabled ? `set to ${seconds}s` : 'disabled'}.`);
+      return true;
+    } catch (err) {
+      toast.error('Cooldown Update Failed', err.response?.data?.message || 'Failed to update cooldown settings');
+      return false;
     }
   };
 
@@ -268,6 +351,8 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
     isSending,
     isActionPending,
     updatingVolunteerId,
+    replyingTo,
+    setReplyingTo,
     messagesEndRef,
     isRequester,
     isVolunteer,
@@ -277,6 +362,7 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
     handleSend,
     handleQuickAction,
     handleToggleCooldown,
+    handleUpdateCooldown,
     handlePin,
     handleCloseRoom,
     handleVolunteerStatusUpdate,

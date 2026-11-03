@@ -86,26 +86,28 @@ export const useRequestsPageData = (currentUser) => {
       toast.error(
         'Cancellation Failed',
         err.response?.data?.message ||
-          err.message ||
-          'Unable to cancel this request. Only the creator can cancel active requests.'
+        err.message ||
+        'Unable to cancel this request. Only the creator can cancel active requests.'
       );
     } finally {
       setCancelling(false);
     }
   };
 
-  const handleVolunteer = async (e, request) => {
-    e.stopPropagation();
+  const [requestToVolunteer, setRequestToVolunteer] = useState(null);
+
+  const handleVolunteer = (e, request) => {
+    e?.stopPropagation?.();
     if (!currentUser) {
       navigate('/login');
       return;
     }
-    try {
-      await volunteerForRequest(request._id, currentUser);
-      navigate(`/coordination/${request._id}`);
-    } catch (err) {
-      console.error('Failed to volunteer:', err);
-    }
+    setRequestToVolunteer(request);
+  };
+
+  const handleVolunteerSuccess = async (request) => {
+    await volunteerForRequest(request._id, currentUser);
+    navigate(`/coordination/${request._id}`);
   };
 
   const handleLoadMore = () => {
@@ -157,7 +159,10 @@ export const useRequestsPageData = (currentUser) => {
     networkPagination,
     handleCancelRequest,
     confirmCancel,
+    requestToVolunteer,
+    setRequestToVolunteer,
     handleVolunteer,
+    handleVolunteerSuccess,
     handleLoadMore,
     handleRetry,
   };

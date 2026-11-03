@@ -56,6 +56,26 @@ const messageSchema = new mongoose.Schema(
             },
             default: null,
         },
+
+        // Optional reply to a specific message in the room
+        replyTo: {
+            messageId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Message",
+                default: null,
+            },
+            senderName: {
+                type: String,
+                default: null,
+                trim: true,
+            },
+            text: {
+                type: String,
+                default: null,
+                trim: true,
+                maxLength: [300, "Reply preview text cannot exceed 300 characters"],
+            },
+        },
     },
     {
         timestamps: true,

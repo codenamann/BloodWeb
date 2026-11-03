@@ -7,6 +7,7 @@ import { generateOtp, hashOtp } from "../utils/otp.js";
 import jwt from "jsonwebtoken";
 import env from "../config/env.js";
 import { BLOOD_GROUPS } from "../../../client/src/utils/compatibility.js";
+import { uploadAvatarToCloudinary, deleteFromCloudinary } from "./cloudinary.service.js";
 
 const OTP_EXPIRES_AT = 5; // minutes
 
@@ -51,7 +52,8 @@ export async function loginUser(email, password) {
             _id: user._id,
             name: user.name,
             email: user.email,
-            emailVerified: user.emailVerified
+            emailVerified: user.emailVerified,
+            avatar: user.avatar || null
         },
         token
     };
@@ -276,6 +278,7 @@ export async function getUserProfile(userId) {
         name: user.name,
         email: user.email,
         phone: user.phone,
+        avatar: user.avatar || null,
         emailVerified: user.emailVerified,
         profileComplete: user.profileComplete,
         reliabilityScore: user.reliabilityScore,
@@ -378,8 +381,7 @@ export async function toggleAvailability(userId) {
         {
             availability: 1,
             bloodGroup: 1,
-            location: 1,
-            phone: 1
+            location: 1
         }
     );
 
@@ -387,15 +389,43 @@ export async function toggleAvailability(userId) {
     if (!user.bloodGroup) throw new AppError('bloodGroup is missing', 400);
     if (!user.location) throw new AppError('Location is missing', 400);
     if (!user.location.coordinates) throw new AppError('Coordinates are missing', 400);
-    if (!user.phone) throw new AppError('Phone number is missing', 400);
 
     user.availability = !user.availability;
     return await user.save();
 }
 
-export async function updateDonorReadiness(userId, { bloodGroup, location, availability }) {
+export async function updateDonorReadiness(userId, { bloodGroup, location, availability, phone, dob }) {
     const user = await User.findById(userId);
     if (!user) throw new AppError("User not found", 404);
+
+    if (phone !== undefined && phone !== null) {
+        const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+        if (cleanPhone.length !== 10 || !/^[6-9]/.test(cleanPhone)) {
+            throw new AppError("Please provide a valid 10-digit mobile number starting with 6, 7, 8, or 9", 400);
+        }
+        const existing = await User.findOne({ phone: cleanPhone, _id: { $ne: userId } });
+        if (existing) {
+            throw new AppError("This phone number is already registered with another account", 409);
+        }
+        user.phone = cleanPhone;
+    }
+
+    if (dob !== undefined && dob !== null) {
+        const birthDate = new Date(dob);
+        if (isNaN(birthDate.getTime())) {
+            throw new AppError("Invalid date of birth provided", 400);
+        }
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        if (age < 18) {
+            throw new AppError("You must be at least 18 years old to volunteer as a blood donor", 400);
+        }
+        user.dob = birthDate;
+    }
 
     if (bloodGroup !== undefined && bloodGroup !== null) {
         if (!BLOOD_GROUPS.includes(bloodGroup)) {
@@ -450,5 +480,48 @@ export async function updateDonorReadiness(userId, { bloodGroup, location, avail
     }
 
     await user.save();
+    return await getUserProfile(userId);
+}
+
+export async function updateAvatar(userId, file) {
+    if (!file) {
+        throw new AppError("No image file provided", 400);
+    }
+
+    const user = await User.findById(userId).select('+avatarKey');
+    if (!user) throw new AppError('User not found', 404);
+
+    const oldAvatarKey = user.avatarKey;
+
+    const result = await uploadAvatarToCloudinary(file);
+    user.avatar = result.url;
+    user.avatarKey = result.storageKey;
+    await user.save();
+
+    // Clean up previous avatar in Cloudinary in background
+    if (oldAvatarKey) {
+        deleteFromCloudinary(oldAvatarKey).catch(err => {
+            console.error('Failed to delete old avatar:', err);
+        });
+    }
+
+    return await getUserProfile(userId);
+}
+
+export async function removeAvatar(userId) {
+    const user = await User.findById(userId).select('+avatarKey');
+    if (!user) throw new AppError('User not found', 404);
+
+    const oldAvatarKey = user.avatarKey;
+    user.avatar = null;
+    user.avatarKey = null;
+    await user.save();
+
+    if (oldAvatarKey) {
+        deleteFromCloudinary(oldAvatarKey).catch(err => {
+            console.error('Failed to delete avatar:', err);
+        });
+    }
+
     return await getUserProfile(userId);
 }

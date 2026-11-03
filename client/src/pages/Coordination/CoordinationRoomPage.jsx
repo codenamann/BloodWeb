@@ -5,11 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import {
   CoordinationLoadingSkeleton,
   CoordinationErrorView,
-  CoordinationRoomHeader,
   CoordinationSummaryBanners,
   CoordinationChatStream,
   CoordinationParticipantsCard,
-  CoordinationHospitalCard,
+  CoordinationDocumentCard,
 } from './components';
 import { useCoordinationRoomPage } from './hooks/useCoordinationRoomPage';
 
@@ -31,6 +30,8 @@ export const CoordinationRoomPage = () => {
     isSending,
     isActionPending,
     updatingVolunteerId,
+    replyingTo,
+    setReplyingTo,
     messagesEndRef,
     isRequester,
     isVolunteer,
@@ -40,6 +41,7 @@ export const CoordinationRoomPage = () => {
     handleSend,
     handleQuickAction,
     handleToggleCooldown,
+    handleUpdateCooldown,
     handlePin,
     handleCloseRoom,
     handleVolunteerStatusUpdate,
@@ -59,23 +61,7 @@ export const CoordinationRoomPage = () => {
       : request.responses || [];
 
   return (
-    <div className="space-y-5 max-w-6xl mx-auto">
-      <CoordinationRoomHeader
-        request={request}
-        participants={participants}
-        isClosed={isClosed}
-        isRequester={isRequester}
-        cooldownEnabled={cooldownEnabled}
-        room={room}
-        handleToggleCooldown={handleToggleCooldown}
-        handleCloseRoom={handleCloseRoom}
-      />
-
-      <CoordinationSummaryBanners
-        request={request}
-        activeVolunteers={activeVolunteers}
-      />
-
+    <div className="space-y-4 max-w-6xl mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <CoordinationChatStream
           messages={messages}
@@ -93,9 +79,22 @@ export const CoordinationRoomPage = () => {
           handleSend={handleSend}
           cooldownRemaining={cooldownRemaining}
           isSending={isSending}
+          replyingTo={replyingTo}
+          setReplyingTo={setReplyingTo}
+          adminId={
+            room?.adminId || request?.createdBy?._id || request?.createdBy
+          }
+          request={request}
+          participants={participants}
+          room={room}
+          cooldownEnabled={cooldownEnabled}
+          handleToggleCooldown={handleToggleCooldown}
+          handleUpdateCooldown={handleUpdateCooldown}
+          handleCloseRoom={handleCloseRoom}
+          activeVolunteers={activeVolunteers}
         />
 
-        <div className="space-y-4">
+        <div className="flex flex-col h-[650px] gap-4">
           <CoordinationParticipantsCard
             activeVolunteers={activeVolunteers}
             participants={participants}
@@ -106,8 +105,12 @@ export const CoordinationRoomPage = () => {
             handleVolunteerStatusUpdate={handleVolunteerStatusUpdate}
           />
 
-          <CoordinationHospitalCard request={request} />
+          <CoordinationDocumentCard request={request} />
         </div>
+        <CoordinationSummaryBanners
+          request={request}
+          activeVolunteers={activeVolunteers}
+        />
       </div>
     </div>
   );

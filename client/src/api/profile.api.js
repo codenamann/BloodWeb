@@ -36,7 +36,21 @@ export async function toggleAvailability() {
     return res.data;
 }
 
-export async function updateDonorReadiness({ bloodGroup, location, availability }) {
-    const res = await client.patch('/api/user/donor-readiness', { bloodGroup, location, availability });
+export async function updateDonorReadiness({ bloodGroup, location, availability, phone, dob }) {
+    const res = await client.patch('/api/user/donor-readiness', { bloodGroup, location, availability, phone, dob });
     return res.data;
 }
+
+export async function uploadAvatar(fileBlob) {
+    const formData = new FormData();
+    formData.append('avatar', fileBlob, 'avatar.webp');
+    const res = await client.post('/api/user/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
+}
+
+export async function deleteAvatar() {
+    const res = await client.delete('/api/user/avatar');
+    return res.data;
+}

@@ -94,11 +94,11 @@ export async function getRoomParticipants(requestId, userId = null) {
                 requestId,
                 status: { $ne: 'WITHDRAWN' }
             }
-        ).populate('donorId', 'name bloodGroup avatarType email phone').lean(),
+        ).populate('donorId', 'name bloodGroup avatar email phone').lean(),
         BloodRequest.findOne(
             { _id: requestId },
             { createdBy: 1 }
-        ).populate('createdBy', 'name bloodGroup avatarType email phone').lean()
+        ).populate('createdBy', 'name bloodGroup avatar email phone').lean()
     ]);
 
     if (!request) throw new AppError('Blood request not found', 404);
@@ -117,7 +117,7 @@ export async function getRoomParticipants(requestId, userId = null) {
         _id: request.createdBy?._id,
         name: request.createdBy?.name || 'Requester',
         bloodGroup: request.createdBy?.bloodGroup,
-        avatarType: request.createdBy?.avatarType,
+        avatar: request.createdBy?.avatar || null,
         ...(canAccessRequesterContact && {
             email: request.createdBy?.email,
             phone: request.createdBy?.phone,
@@ -135,7 +135,7 @@ export async function getRoomParticipants(requestId, userId = null) {
             _id: donorIdStr,
             name: donorDoc.name || 'Verified Donor',
             bloodGroup: donorDoc.bloodGroup || null,
-            avatarType: donorDoc.avatarType || 'alex',
+            avatar: donorDoc.avatar || null,
             ...(canAccessVolunteerContact && {
                 email: donorDoc.email,
                 phone: donorDoc.phone,
@@ -210,6 +210,9 @@ export async function updateCooldown(roomId, requesterId, messageCooldownSeconds
     if (typeof messageCooldownSeconds === 'number') {
         if (messageCooldownSeconds < 1) {
             throw new AppError('Cooldown must be at least 1 second', 400);
+        }
+        if (messageCooldownSeconds > 10) {
+            throw new AppError('Cooldown cannot exceed 10 seconds', 400);
         }
         room.messageCooldownSeconds = messageCooldownSeconds;
     }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ShieldCheck,
   MapPin,
@@ -13,9 +13,11 @@ import ClayAvatar from '../../../components/ClayAssets/ClayAvatar';
 import ClayStatStrip from '../../../components/ui/ClayStatStrip';
 import ClayStatItem from '../../../components/ui/ClayStatItem';
 import { useAuth } from '../../../context/AuthContext';
+import AvatarCropModal from '../../../components/common/AvatarCropModal';
 
 const ProfileHeroCard = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, updateUser } = useAuth();
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
 
   return (
     <div className="relative clay-card p-5 sm:p-6 w-full flex flex-col justify-between overflow-hidden">
@@ -46,8 +48,13 @@ const ProfileHeroCard = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
         <div className="flex items-center gap-4 sm:gap-5">
           <div className="relative shrink-0">
-            <ClayAvatar type="neutral" size={84} />
-            <button className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#d93829] text-white flex items-center justify-center shadow-sm border-[3px] border-[#f5f1ea] hover:scale-105 transition-transform">
+            <ClayAvatar src={currentUser?.avatar} type="neutral" size={84} />
+            <button
+              type="button"
+              onClick={() => setIsCropModalOpen(true)}
+              className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#d93829] text-white flex items-center justify-center shadow-sm border-[3px] border-[#f5f1ea] hover:scale-105 transition-transform"
+              title="Change profile picture"
+            >
               <Edit2 className="w-3 h-3 fill-current" />
             </button>
           </div>
@@ -116,6 +123,13 @@ const ProfileHeroCard = () => {
           }
         />
       </ClayStatStrip>
+
+      <AvatarCropModal
+        isOpen={isCropModalOpen}
+        onClose={() => setIsCropModalOpen(false)}
+        currentAvatar={currentUser?.avatar}
+        onAvatarUpdated={(updatedUser) => updateUser(updatedUser)}
+      />
     </div>
   );
 };

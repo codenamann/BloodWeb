@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, User } from 'lucide-react';
 
 export const ClayAvatar = ({
-  type = 'alex',
+  src = null,
+  type = 'neutral',
   size = 84,
   showBadge = false,
   badgeColor = 'crimson',
@@ -11,22 +12,50 @@ export const ClayAvatar = ({
   bloodGroup = '',
   className = '',
 }) => {
+  const [imgError, setImgError] = useState(false);
+  const isCharacterType = ['alex', 'sarah', 'marcus', 'elena'].includes(type);
+  const hasValidImg = Boolean(
+    src &&
+    typeof src === 'string' &&
+    src.trim() !== '' &&
+    !imgError &&
+    (src.startsWith('http') || src.startsWith('/') || src.startsWith('data:'))
+  );
+
   return (
     <div
-      className={`relative inline-flex items-center justify-center ${className}`}
+      className={`relative inline-flex items-center justify-center shrink-0 ${className}`}
     >
       {/* Outer Clay Node Container */}
       <div
         className="clay-node flex items-center justify-center overflow-hidden transition-transform duration-300 hover:scale-105"
-        style={{ width: size, height: size }}
+        style={{
+          width: size,
+          height: size,
+          borderWidth: size < 40 ? '2px' : '4px',
+        }}
       >
-        <svg
-          viewBox="0 0 100 100"
-          className="w-full h-full"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        {hasValidImg ? (
+          <img
+            src={src}
+            alt={name || 'Avatar'}
+            className="w-full h-full object-cover rounded-full"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : isCharacterType ? (
+          <svg
+            viewBox="0 0 100 100"
+            className="w-full h-full"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
           <defs>
+            {/* Neutral Profile Gradient */}
+            <linearGradient id="neutralGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#cbd5e1" />
+              <stop offset="100%" stopColor="#94a3b8" />
+            </linearGradient>
             {/* Skin Shading */}
             <radialGradient id={`skinGrad-${type}`} cx="45%" cy="40%" r="55%">
               <stop offset="0%" stopColor="#ffdfc9" />
@@ -385,30 +414,16 @@ export const ClayAvatar = ({
               <circle cx="62" cy="52" r="3.2" fill="#ff7f70" opacity="0.35" />
             </g>
           )}
-
-          {/* Type 5: Neutral Profile */}
-          {type === 'neutral' && (
-            <g id="neutral-character">
-              <linearGradient
-                id="neutralGrad"
-                x1="0%"
-                y1="0%"
-                x2="0%"
-                y2="100%"
-              >
-                <stop offset="0%" stopColor="#e8e2d7" />
-                <stop offset="100%" stopColor="#c5baa7" />
-              </linearGradient>
-              {/* Shoulders / Body */}
-              <path
-                d="M22 88 C22 72 34 60 50 60 C66 60 78 72 78 88 L78 100 L22 100 Z"
-                fill="url(#neutralGrad)"
-              />
-              {/* Head */}
-              <circle cx="50" cy="40" r="18" fill="url(#neutralGrad)" />
-            </g>
-          )}
         </svg>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-stone-100/90 text-stone-500 rounded-full">
+            <User
+              style={{ width: size * 0.52, height: size * 0.52 }}
+              className="text-stone-500"
+              strokeWidth={2.4}
+            />
+          </div>
+        )}
       </div>
 
       {/* Checkmark 3D Badge */}

@@ -25,7 +25,7 @@ export async function isRoomParticipant(requestId, senderId) {
     return !!(isRequester || isVolunteer);
 }
 
-export async function sendMessage(roomId, senderId, text) {
+export async function sendMessage(roomId, senderId, text, replyTo = null) {
     if (!text || typeof text !== 'string' || !text.trim()) {
         throw new AppError("Message text is required", 400);
     }
@@ -49,14 +49,23 @@ export async function sendMessage(roomId, senderId, text) {
         }
     }
 
-    const message = await Message.create({
+    const messageData = {
         roomId,
         senderId,
         type: 'USER',
         text: text.trim()
-    });
+    };
 
-    await message.populate('senderId', 'name avatarType bloodGroup');
+    if (replyTo && (replyTo.text || replyTo.messageId)) {
+        messageData.replyTo = {
+            messageId: replyTo.messageId || null,
+            senderName: replyTo.senderName || null,
+            text: replyTo.text ? String(replyTo.text).slice(0, 300) : null
+        };
+    }
+
+    const message = await Message.create(messageData);
+    await message.populate('senderId', 'name avatar bloodGroup');
 
     // Broadcast message to all active participants in the coordination room
     emitToRoom(room.requestId, 'NEW_MESSAGE', message);
@@ -164,7 +173,7 @@ export async function getMessages(roomId, senderId) {
     if (!isParticipant) throw new AppError("You are not authorized to view messages in this room", 403);
 
     return Message.find({ roomId })
-        .populate('senderId', 'name avatarType bloodGroup')
+        .populate('senderId', 'name avatar bloodGroup')
         .sort({ createdAt: 1 })
         .lean();
 }

@@ -10,6 +10,7 @@ export const RequestProgressCard = ({
   requestId,
   handleShare,
   shareFeedback,
+  canAccessCoordination,
 }) => {
   const navigate = useNavigate();
 
@@ -66,13 +67,15 @@ export const RequestProgressCard = ({
             <span className="text-[10px] text-emerald-600 font-bold">Link Copied!</span>
           )}
         </button>
-        <button
-          onClick={() => navigate(`/coordination/${requestId}`)}
-          className="w-full p-2.5 rounded-xl bg-stone-50 hover:bg-stone-100 text-xs font-bold text-stone-700 flex items-center gap-2 cursor-pointer transition-colors"
-        >
-          <MessageSquare className="w-4 h-4 text-[#d93829]" />
-          <span>Coordination Room</span>
-        </button>
+        {canAccessCoordination && (
+          <button
+            onClick={() => navigate(`/coordination/${requestId}`)}
+            className="w-full p-2.5 rounded-xl bg-stone-50 hover:bg-stone-100 text-xs font-bold text-stone-700 flex items-center gap-2 cursor-pointer transition-colors"
+          >
+            <MessageSquare className="w-4 h-4 text-[#d93829]" />
+            <span>Coordination Room</span>
+          </button>
+        )}
       </div>
     </div>
   );

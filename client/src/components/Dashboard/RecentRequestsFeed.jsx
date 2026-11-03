@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, MapPin, ChevronRight } from 'lucide-react';
 import { UrgencyBadge } from '../common/UrgencyBadge';
+import { formatHumanDateTime } from '../../utils/dateUtils';
 
 export const RecentRequestsFeed = ({ recentRequests, currentUser }) => {
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ export const RecentRequestsFeed = ({ recentRequests, currentUser }) => {
                   <div className="text-xs text-stone-500 font-medium flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                     <span className="truncate max-w-[180px] md:max-w-xs">
-                      {req.hospitalName}
+                      {req.hospitalName || req.hospitalId?.name || 'Hospital'}
                     </span>
                   </div>
                 </div>
@@ -63,7 +64,7 @@ export const RecentRequestsFeed = ({ recentRequests, currentUser }) => {
                 <div className="text-left md:text-right flex md:block items-center gap-2 md:gap-0">
                   <UrgencyBadge urgency={req.urgency} size="sm" />
                   <div className="text-[10px] text-stone-500 font-semibold mt-1">
-                    Needed by {req.neededBy || 'Today'}
+                    Needed by {formatHumanDateTime(req.neededBy)}
                   </div>
                 </div>
 

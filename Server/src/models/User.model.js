@@ -91,6 +91,18 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    avatar: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
+    avatarKey: {
+      type: String,
+      default: null,
+      select: false,
+    },
+
     // ── Availability ──────────────────────────────────────────────────────────
     // Only users with availability: true appear in matching queries.
     // Requires bloodGroup and location to be set before it can be toggled true.
@@ -178,8 +190,7 @@ userSchema.virtual('profileComplete').get(function () {
     this.phone &&
     this.bloodGroup &&
     this.location &&
-    this.location.city &&
-    this.location.area
+    this.location.city
   );
 });
 

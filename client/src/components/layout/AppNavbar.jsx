@@ -227,7 +227,8 @@ export const AppNavbar = () => {
                   className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 rounded-2xl clay-card-flat bg-white hover:bg-stone-50 transition-all cursor-pointer"
                 >
                   <ClayAvatar
-                    type={currentUser?.avatarType || 'sarah'}
+                    src={currentUser?.avatar}
+                    type="neutral"
                     size={32}
                     showBadge={false}
                   />
@@ -259,7 +260,8 @@ export const AppNavbar = () => {
                     <div className="flex items-center justify-between pb-3 border-b border-stone-100">
                       <div className="flex items-center gap-3">
                         <ClayAvatar
-                          type={currentUser?.avatarType || 'sarah'}
+                          src={currentUser?.avatar}
+                          type="neutral"
                           size={44}
                           showBadge={true}
                           badgeColor="crimson"

@@ -8,6 +8,7 @@ import {
   withdrawVolunteerResponse,
 } from '../../../api/volunteer.api';
 import { subscribeToRequestUpdates } from '../../../services/socket';
+import { toast } from '../../../components/ui/toast';
 
 export const useRequestDetailPage = (id, setActiveTab) => {
   const { currentUser } = useAuth();
@@ -107,30 +108,32 @@ export const useRequestDetailPage = (id, setActiveTab) => {
     }
   };
 
-  const handleVolunteer = async () => {
-    if (!request) return;
-    try {
-      setActionLoading(true);
-      await volunteerForRequest(request._id);
-      await fetchRequest();
-      if (setActiveTab) setActiveTab('VOLUNTEERS');
-    } catch (err) {
-      console.error('Failed to volunteer:', err);
-      alert(err.response?.data?.message || 'Failed to submit volunteer offer');
-    } finally {
-      setActionLoading(false);
+  const [showVolunteerModal, setShowVolunteerModal] = useState(false);
+
+  const handleVolunteer = () => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
     }
+    setShowVolunteerModal(true);
+  };
+
+  const handleVolunteerSuccess = async () => {
+    await volunteerForRequest(request._id);
+    await fetchRequest();
+    if (setActiveTab) setActiveTab('VOLUNTEERS');
   };
 
   const handleStatusChange = async (responseId, newStatus) => {
     if (!request) return;
     try {
       setActionLoading(true);
-      await updateVolunteerStatus(request._id, responseId, newStatus);
+      await updateVolunteerStatus(responseId, newStatus);
       await fetchRequest();
+      toast.success('Status Updated', `Volunteer status changed to ${newStatus}`);
     } catch (err) {
       console.error('Failed to update status:', err);
-      alert(err.response?.data?.message || 'Failed to update volunteer status');
+      toast.error('Update Failed', err.response?.data?.message || 'Failed to update volunteer status');
     } finally {
       setActionLoading(false);
     }
@@ -140,16 +143,17 @@ export const useRequestDetailPage = (id, setActiveTab) => {
     setResponseToWithdraw(respId);
   };
 
-  const confirmWithdraw = async (reason) => {
+  const confirmWithdraw = async () => {
     if (!request || !responseToWithdraw) return;
     try {
       setActionLoading(true);
-      await withdrawVolunteerResponse(request._id, responseToWithdraw, reason);
+      await withdrawVolunteerResponse(responseToWithdraw);
       await fetchRequest();
       setResponseToWithdraw(null);
+      toast.success('Offer Withdrawn', 'Your volunteer offer has been withdrawn.');
     } catch (err) {
       console.error('Failed to withdraw:', err);
-      alert(err.response?.data?.message || 'Failed to withdraw volunteer response');
+      toast.error('Withdraw Failed', err.response?.data?.message || 'Failed to withdraw volunteer response');
     } finally {
       setActionLoading(false);
     }
@@ -177,12 +181,19 @@ export const useRequestDetailPage = (id, setActiveTab) => {
     isDonorCompatible(currentUser.bloodGroup, request.patientBloodGroup)
   );
 
+  const currentUserId = (currentUser?._id || currentUser?.id)?.toString();
   const responses = Array.isArray(request?.responses) ? request.responses : [];
-  const myResponse = responses.find(
-    (resp) =>
-      currentUser?._id &&
-      (resp.donorId === currentUser._id || resp.donor?._id === currentUser._id)
-  );
+  const myResponse = responses.find((resp) => {
+    const dId = (
+      resp.donorId?._id ||
+      resp.donorId?.id ||
+      (typeof resp.donorId === 'string' ? resp.donorId : null) ||
+      resp.donor?._id ||
+      resp.donor?.id ||
+      resp.donorId
+    )?.toString();
+    return currentUserId && dId === currentUserId && resp.status !== 'WITHDRAWN';
+  });
   const alreadyVolunteered = Boolean(myResponse);
   const hasAcceptedVolunteers = responses.some((r) => r.status === 'ACCEPTED');
 
@@ -233,7 +244,10 @@ export const useRequestDetailPage = (id, setActiveTab) => {
     handleCompleteRequest,
     handleShare,
     shareFeedback,
+    showVolunteerModal,
+    setShowVolunteerModal,
     handleVolunteer,
+    handleVolunteerSuccess,
     handleStatusChange,
     handleWithdraw,
     confirmWithdraw,

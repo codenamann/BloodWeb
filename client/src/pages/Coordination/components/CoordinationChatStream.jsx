@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Pin, Timer, Send } from 'lucide-react';
 import CoordinationMessageItem from './CoordinationMessageItem';
+import ChatStreamHeader from './ChatStreamHeader';
+import CoordinationReplyBanner from './CoordinationReplyBanner';
 
 export const CoordinationChatStream = ({
   messages,
@@ -18,9 +20,54 @@ export const CoordinationChatStream = ({
   handleSend,
   cooldownRemaining,
   isSending,
+  replyingTo,
+  setReplyingTo,
+  adminId,
+  request,
+  participants,
+  room,
+  cooldownEnabled,
+  handleToggleCooldown,
+  handleUpdateCooldown,
+  handleCloseRoom,
+  activeVolunteers,
 }) => {
+  const inputRef = useRef(null);
+
+  const handleReply = (msg) => {
+    if (setReplyingTo) {
+      setReplyingTo(msg);
+      inputRef.current?.focus();
+    }
+  };
+
+  const handleScrollToMessage = (messageId) => {
+    const el = document.getElementById(`msg-${messageId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-[#c62828]', 'bg-red-50/80');
+      setTimeout(() => {
+        el.classList.remove('ring-2', 'ring-[#c62828]', 'bg-red-50/80');
+      }, 1500);
+    }
+  };
+
   return (
-    <div className="lg:col-span-2 flex flex-col h-[600px] clay-card bg-white/95 shadow-sm overflow-hidden">
+    <div className="lg:col-span-2 flex flex-col h-[650px] clay-card bg-white/95 shadow-sm overflow-hidden">
+      {/* Integrated Chat Window Header */}
+      <ChatStreamHeader
+        request={request}
+        participants={participants}
+        room={room}
+        isClosed={isClosed}
+        isRequester={isRequester}
+        cooldownEnabled={cooldownEnabled}
+        handleToggleCooldown={handleToggleCooldown}
+        handleUpdateCooldown={handleUpdateCooldown}
+        handleCloseRoom={handleCloseRoom}
+        activeVolunteers={activeVolunteers}
+      />
+
       {/* Pinned Message Strip */}
       {pinnedText && (
         <div className="p-3 bg-amber-50/90 border-b border-amber-200/60 flex items-start justify-between gap-2.5 text-xs text-amber-900 shrink-0">
@@ -47,7 +94,7 @@ export const CoordinationChatStream = ({
       )}
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4">
+      <div style={{ scrollbarGutter: 'stable' }} className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-1.5 custom-scrollbar-2px">
         {messages.length === 0 ? (
           <div className="py-16 text-center text-xs text-stone-400 font-medium">
             Coordination room opened. Say hello or coordinate arrival.
@@ -59,15 +106,18 @@ export const CoordinationChatStream = ({
               msg={msg}
               currentUser={currentUser}
               isRequester={isRequester}
+              adminId={adminId}
               isClosed={isClosed}
               handlePin={handlePin}
+              onReply={handleReply}
+              onScrollToMessage={handleScrollToMessage}
             />
           ))
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Donor Action Buttons (Visible to active volunteers when room is LIVE) */}
+      {/* Quick Donor Action Buttons */}
       {!isClosed && isVolunteer && (
         <div className="px-4 py-2 bg-stone-50 border-t border-stone-100 flex items-center gap-2 overflow-x-auto">
           <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider shrink-0">
@@ -92,6 +142,15 @@ export const CoordinationChatStream = ({
         </div>
       )}
 
+      {/* WhatsApp-Style Replying Banner */}
+      {!isClosed && (
+        <CoordinationReplyBanner
+          replyingTo={replyingTo}
+          currentUser={currentUser}
+          onCancel={() => setReplyingTo(null)}
+        />
+      )}
+
       {/* Input Form Bar */}
       <form
         onSubmit={handleSend}
@@ -105,15 +164,12 @@ export const CoordinationChatStream = ({
           <>
             <div className="relative flex-1">
               <input
+                ref={inputRef}
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                disabled={cooldownRemaining > 0 || isSending}
-                placeholder={
-                  cooldownRemaining > 0
-                    ? `Cooldown active: wait ${cooldownRemaining}s...`
-                    : 'Type a coordination message...'
-                }
+                disabled={cooldownRemaining > 0}
+                placeholder={cooldownRemaining > 0 ? `Cooldown active: wait ${cooldownRemaining}s...` : replyingTo ? 'Type your reply...' : 'Type a coordination message...'}
                 className="w-full px-4 py-2.5 text-xs sm:text-sm bg-[#faf7f2] rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#d93829]/30 font-medium disabled:bg-stone-100 disabled:text-stone-400"
               />
               {cooldownRemaining > 0 && (
@@ -125,7 +181,7 @@ export const CoordinationChatStream = ({
 
             <button
               type="submit"
-              disabled={!inputMessage.trim() || cooldownRemaining > 0 || isSending}
+              disabled={!inputMessage.trim() || cooldownRemaining > 0}
               className="clay-btn-crimson p-2.5 sm:px-4 sm:py-2.5 rounded-xl text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
             >
               <Send className="w-4 h-4" />

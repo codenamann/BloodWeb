@@ -5,12 +5,13 @@ export const RequestDetailTabBar = ({
   activeTab,
   setActiveTab,
   responseCount,
+  canAccessCoordination,
   onOpenCoordination,
 }) => {
   const tabs = [
     { id: 'OVERVIEW', label: 'Overview' },
     { id: 'VOLUNTEERS', label: `Volunteers (${responseCount})` },
-    { id: 'COORDINATION', label: 'Coordination Room' },
+    ...(canAccessCoordination ? [{ id: 'COORDINATION', label: 'Coordination Room' }] : []),
   ];
 
   return (

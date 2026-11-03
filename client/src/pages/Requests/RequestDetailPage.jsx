@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import VolunteerSetupModal from '../../components/common/VolunteerSetupModal';
 import { RequestDetailSkeleton } from './components/RequestDetailSkeleton';
 import {
   RequestDetailHeader,
@@ -29,6 +31,7 @@ const formatNeededBy = (val) => {
 export const RequestDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState('OVERVIEW');
 
   const {
@@ -49,7 +52,10 @@ export const RequestDetailPage = () => {
     handleCompleteRequest,
     handleShare,
     shareFeedback,
+    showVolunteerModal,
+    setShowVolunteerModal,
     handleVolunteer,
+    handleVolunteerSuccess,
     handleStatusChange,
     handleWithdraw,
     confirmWithdraw,
@@ -90,6 +96,9 @@ export const RequestDetailPage = () => {
         completing={completing}
         cancelling={cancelling}
         actionLoading={actionLoading}
+        alreadyVolunteered={alreadyVolunteered}
+        isCompatible={isCompatible}
+        handleVolunteer={handleVolunteer}
       />
 
       {/* MAIN REQUEST CARD */}
@@ -106,6 +115,7 @@ export const RequestDetailPage = () => {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           responseCount={responses.length}
+          canAccessCoordination={isRequester || alreadyVolunteered}
           onOpenCoordination={() => navigate(`/coordination/${request._id}`)}
         />
 
@@ -152,6 +162,15 @@ export const RequestDetailPage = () => {
         onClose={() => setResponseToWithdraw(null)}
         confirmWithdraw={confirmWithdraw}
         actionLoading={actionLoading}
+      />
+
+      <VolunteerSetupModal
+        isOpen={showVolunteerModal}
+        onClose={() => setShowVolunteerModal(false)}
+        request={request}
+        currentUser={currentUser}
+        updateUser={updateUser}
+        onVolunteerSuccess={handleVolunteerSuccess}
       />
     </div>
   );

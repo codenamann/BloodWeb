@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import VolunteerSetupModal from '../../components/common/VolunteerSetupModal';
 
 import RequestCard from './components/RequestCard';
 import RequestCardSkeleton from './components/RequestCardSkeleton';
@@ -15,7 +16,7 @@ import { useRequestsPageData } from './hooks/useRequestsPageData';
 const BLOOD_GROUPS = ['ALL', 'A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
 export const RequestsPage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, updateUser } = useAuth();
   const {
     statusTab,
     setStatusTab,
@@ -39,7 +40,10 @@ export const RequestsPage = () => {
     networkPagination,
     handleCancelRequest,
     confirmCancel,
+    requestToVolunteer,
+    setRequestToVolunteer,
     handleVolunteer,
+    handleVolunteerSuccess,
     handleLoadMore,
     handleRetry,
   } = useRequestsPageData(currentUser);
@@ -152,6 +156,15 @@ export const RequestsPage = () => {
         onClose={() => setRequestToCancel(null)}
         confirmCancel={confirmCancel}
         cancelling={cancelling}
+      />
+
+      <VolunteerSetupModal
+        isOpen={Boolean(requestToVolunteer)}
+        onClose={() => setRequestToVolunteer(null)}
+        request={requestToVolunteer}
+        currentUser={currentUser}
+        updateUser={updateUser}
+        onVolunteerSuccess={handleVolunteerSuccess}
       />
     </div>
   );

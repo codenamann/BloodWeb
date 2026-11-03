@@ -87,7 +87,7 @@ export async function getRequestById(requestId, viewerId = null) {
 
     const request = await BloodRequest.findById(requestId)
         .populate('hospitalId')
-        .populate('createdBy', 'name email phone')
+        .populate('createdBy', 'name email phone avatar')
         .lean();
 
     if (!request) {
@@ -95,7 +95,7 @@ export async function getRequestById(requestId, viewerId = null) {
     }
 
     const responses = await VolunteerResponse.find({ requestId })
-        .populate('donorId', 'name email phone bloodGroup')
+        .populate('donorId', 'name email phone bloodGroup avatar')
         .sort({ createdAt: -1 })
         .lean();
 
@@ -115,6 +115,7 @@ export async function getRequestById(requestId, viewerId = null) {
     const sanitizedCreatedBy = {
         _id: creatorIdStr,
         name: request.createdBy?.name || 'Requester',
+        avatar: request.createdBy?.avatar || null,
         ...(canAccessRequesterContact && {
             email: request.createdBy?.email,
             phone: request.createdBy?.phone,
@@ -149,6 +150,7 @@ export async function getRequestById(requestId, viewerId = null) {
             donor: {
                 _id: donorIdStr,
                 name: donorDoc.name || 'Verified Donor',
+                avatar: donorDoc.avatar || null,
                 bloodGroup: donorDoc.bloodGroup || null,
                 ...(canAccessVolunteerContact && {
                     email: donorDoc.email,
@@ -285,7 +287,6 @@ export async function getAllRequests(filters = {}) {
         donor.location.country &&
         donor.location.state &&
         donor.location.city &&
-        donor.location.area &&
         donor.location.pincode &&
         donor.location.coordinates &&
         typeof donor.location.coordinates.lat === 'number' &&

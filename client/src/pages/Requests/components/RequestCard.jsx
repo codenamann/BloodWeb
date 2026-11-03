@@ -3,50 +3,9 @@ import { Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { isDonorCompatible } from '../../../utils/compatibility';
 import { RequestCardBadges, RequestCardActions } from './card';
+import { formatHumanDateTime } from '../../../utils/dateUtils';
 
-export const formatHumanDateTime = (dateVal) => {
-  if (!dateVal) return 'Immediate / ASAP';
-  if (
-    typeof dateVal === 'string' &&
-    (dateVal.includes('Immediate') ||
-      dateVal.includes('mins') ||
-      dateVal.includes('hours'))
-  ) {
-    return dateVal;
-  }
-  const date = new Date(dateVal);
-  if (isNaN(date.getTime())) return String(dateVal);
-
-  const now = new Date();
-  const isToday =
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear();
-
-  const tomorrow = new Date(now);
-  tomorrow.setDate(now.getDate() + 1);
-  const isTomorrow =
-    date.getDate() === tomorrow.getDate() &&
-    date.getMonth() === tomorrow.getMonth() &&
-    date.getFullYear() === tomorrow.getFullYear();
-
-  const timeStr = date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-
-  if (isToday) return `Today at ${timeStr}`;
-  if (isTomorrow) return `Tomorrow at ${timeStr}`;
-
-  const dateStr = date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
-  });
-
-  return `${dateStr} at ${timeStr}`;
-};
+export { formatHumanDateTime };
 
 export const RequestCard = ({
   request,
@@ -66,13 +25,22 @@ export const RequestCard = ({
     request.createdBy
   )?.toString();
   const isRequester = currentUserId && reqCreatorId === currentUserId;
-  const isTerminal = ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(request.status);
+  const isTerminal = ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(
+    request.status
+  );
 
   const hasVolunteered = Boolean(
     currentUserId &&
     request.responses?.some((r) => {
-      const donorId = (r.donorId || r.donor?._id || r.donor?.id)?.toString();
-      return donorId === currentUserId;
+      const donorId = (
+        r.donorId?._id ||
+        r.donorId?.id ||
+        (typeof r.donorId === 'string' ? r.donorId : null) ||
+        r.donor?._id ||
+        r.donor?.id ||
+        r.donorId
+      )?.toString();
+      return donorId && donorId === currentUserId && r.status !== 'WITHDRAWN';
     })
   );
 

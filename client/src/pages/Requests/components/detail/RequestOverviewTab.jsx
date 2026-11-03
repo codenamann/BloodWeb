@@ -131,6 +131,7 @@ export const RequestOverviewTab = ({
         requestId={request._id}
         handleShare={handleShare}
         shareFeedback={shareFeedback}
+        canAccessCoordination={isRequester || alreadyVolunteered}
       />
     </div>
   );

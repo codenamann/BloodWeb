@@ -1,7 +1,19 @@
 import express from 'express';
 import authenticate from '../../middleware/authenticate.js';
 import asyncHandler from '../../middleware/asyncHandler.js';
-import { getUserProfile, updateLocation, updatePhone, updateContactInfo, updateBloodGroup, updateDob, toggleAvailability, updateDonorReadiness } from '../controllers/user.controller.js';
+import uploadAvatarHandler from '../../middleware/uploadAvatarHandler.js';
+import {
+    getUserProfile,
+    updateLocation,
+    updatePhone,
+    updateContactInfo,
+    updateBloodGroup,
+    updateDob,
+    toggleAvailability,
+    updateDonorReadiness,
+    uploadAvatar,
+    removeAvatar
+} from '../controllers/user.controller.js';
 import requireFields from '../../middleware/requireFields.js';
 
 const router = express.Router();
@@ -14,5 +26,7 @@ router.patch('/blood-group', authenticate, requireFields('bloodGroup'), asyncHan
 router.patch('/dob', authenticate, requireFields('dob'), asyncHandler(updateDob));
 router.patch('/availability', authenticate, asyncHandler(toggleAvailability));
 router.patch('/donor-readiness', authenticate, asyncHandler(updateDonorReadiness));
+router.post('/avatar', authenticate, uploadAvatarHandler, asyncHandler(uploadAvatar));
+router.delete('/avatar', authenticate, asyncHandler(removeAvatar));
 
 export default router;

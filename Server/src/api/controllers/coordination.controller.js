@@ -52,10 +52,10 @@ export const handleGetMessages = asyncHandler(async (req, res) => {
 
 export const handleSendMessage = asyncHandler(async (req, res) => {
     const requestId = req.params.requestId || req.params.id;
-    const { text } = req.body;
+    const { text, replyTo } = req.body;
 
     const room = await getRoomByRequestId(requestId, req.user.id);
-    const result = await sendMessage(room._id, req.user.id, text);
+    const result = await sendMessage(room._id, req.user.id, text, replyTo);
 
     if (result.type === "COOLDOWN") {
         return res.status(429).json({

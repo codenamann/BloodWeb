@@ -10,17 +10,21 @@ import DonorsIncompleteRequirements from './components/DonorsIncompleteRequireme
 import DonorRequestCard from './components/DonorRequestCard';
 import DonorsSidebar from './components/DonorsSidebar';
 import DonorReadinessModal from './components/DonorReadinessModal';
+import VolunteerSetupModal from '../../components/common/VolunteerSetupModal';
 
 export const DonorsPage = () => {
   const navigate = useNavigate();
   const {
     currentUser,
+    updateUser,
     hasBloodGroup,
     hasLocation,
     isAvailable,
     isDiscoverReady,
     showSetupModal,
     setShowSetupModal,
+    requestToVolunteer,
+    setRequestToVolunteer,
     selectedUrgency,
     setSelectedUrgency,
     radiusKm,
@@ -32,6 +36,8 @@ export const DonorsPage = () => {
     sortedRequests,
     handleResetFilters,
     handleSetupSuccess,
+    handleVolunteer,
+    handleVolunteerSuccess,
   } = useDonorsPageData();
 
   return (
@@ -106,6 +112,8 @@ export const DonorsPage = () => {
                 <DonorRequestCard
                   key={req._id}
                   request={req}
+                  currentUser={currentUser}
+                  onVolunteer={handleVolunteer}
                   onClick={() => navigate(`/requests/${req._id}`)}
                 />
               ))}
@@ -126,6 +134,16 @@ export const DonorsPage = () => {
         onClose={() => setShowSetupModal(false)}
         currentUser={currentUser}
         onSuccess={handleSetupSuccess}
+      />
+
+      {/* 5. Volunteer Eligibility Setup Modal */}
+      <VolunteerSetupModal
+        isOpen={Boolean(requestToVolunteer)}
+        onClose={() => setRequestToVolunteer(null)}
+        request={requestToVolunteer}
+        currentUser={currentUser}
+        updateUser={updateUser}
+        onVolunteerSuccess={handleVolunteerSuccess}
       />
     </div>
   );
