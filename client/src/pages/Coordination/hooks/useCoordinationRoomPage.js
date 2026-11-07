@@ -9,6 +9,7 @@ import {
   pinCoordinationMessage,
   updateCoordinationCooldown,
   closeCoordinationRoom,
+  deleteCoordinationMessage,
 } from '../../../api/coordination.api';
 import { updateVolunteerStatus } from '../../../api/volunteer.api';
 import { subscribeToCoordinationRoom } from '../../../services/socket';
@@ -18,7 +19,12 @@ const safeAppendMessage = (prev, newMsg) => {
   if (!newMsg) return prev;
   const targetId = (newMsg._id || newMsg.id)?.toString();
   if (targetId && prev.some((m) => (m._id || m.id)?.toString() === targetId)) {
-    return prev.map((m) => ((m._id || m.id)?.toString() === targetId ? newMsg : m));
+    return prev.map((m) => {
+      if ((m._id || m.id)?.toString() === targetId) {
+        return { ...newMsg, _clientKey: m._clientKey || targetId };
+      }
+      return m;
+    });
   }
 
   // Reconcile optimistic messages
@@ -32,7 +38,7 @@ const safeAppendMessage = (prev, newMsg) => {
 
   if (optIdx !== -1) {
     const next = [...prev];
-    next[optIdx] = newMsg;
+    next[optIdx] = { ...newMsg, _clientKey: prev[optIdx]._clientKey || prev[optIdx]._id };
     return next;
   }
 
@@ -109,6 +115,9 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
     const cleanup = subscribeToCoordinationRoom(requestId, {
       NEW_MESSAGE: (newMsg) => {
         setMessages((prev) => safeAppendMessage(prev, newMsg));
+      },
+      MESSAGE_DELETED: ({ messageId }) => {
+        setMessages((prev) => prev.filter((m) => (m._id || m.id)?.toString() !== messageId?.toString()));
       },
       MESSAGE_PINNED: ({ pinnedMessage }) => {
         setRoom((prev) => (prev ? { ...prev, pinnedMessageId: pinnedMessage } : prev));
@@ -222,6 +231,7 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
     const optimisticMsg = {
       _id: tempId,
       id: tempId,
+      _clientKey: tempId,
       roomId: room?._id || requestId,
       senderId: currentUser,
       type: 'USER',
@@ -240,9 +250,9 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
     };
 
     setMessages((prev) => [...prev, optimisticMsg]);
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 10);
+    });
 
     if (cooldownEnabled && !isRequester) {
       setCooldownRemaining(room?.messageCooldownSeconds || 3);
@@ -336,6 +346,20 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
     }
   };
 
+  const handleDeleteMessage = async (messageId) => {
+    if (!messageId || !isRequester) return;
+    try {
+      setMessages((prev) => prev.filter((m) => (m._id || m.id)?.toString() !== messageId.toString()));
+      await deleteCoordinationMessage(requestId, messageId);
+      toast.success('Message Deleted', 'The message was removed from the room.');
+    } catch (err) {
+      toast.error('Delete Failed', err.response?.data?.message || 'Failed to delete message.');
+      getCoordinationMessages(requestId).then((data) => {
+        if (data?.messages) setMessages(data.messages);
+      });
+    }
+  };
+
   return {
     request,
     room,
@@ -364,6 +388,7 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
     handleToggleCooldown,
     handleUpdateCooldown,
     handlePin,
+    handleDeleteMessage,
     handleCloseRoom,
     handleVolunteerStatusUpdate,
   };

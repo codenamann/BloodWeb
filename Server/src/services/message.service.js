@@ -177,3 +177,28 @@ export async function getMessages(roomId, senderId) {
         .sort({ createdAt: 1 })
         .lean();
 }
+
+export async function deleteMessage(roomId, messageId, userId) {
+    const room = await CoordinationRoom.findById(roomId);
+    if (!room) throw new AppError("Coordination room not found", 404);
+
+    const isAdmin = room.adminId.equals(userId);
+    if (!isAdmin) {
+        throw new AppError("Only the room admin can delete messages", 403);
+    }
+
+    const message = await Message.findOne({ _id: messageId, roomId });
+    if (!message) throw new AppError("Message not found", 404);
+
+    if (room.pinnedMessageId && room.pinnedMessageId.equals(messageId)) {
+        room.pinnedMessageId = null;
+        await room.save();
+        emitToRoom(room.requestId, 'MESSAGE_PINNED', { pinnedMessage: null });
+    }
+
+    await Message.deleteOne({ _id: messageId });
+
+    emitToRoom(room.requestId, 'MESSAGE_DELETED', { messageId });
+
+    return { messageId };
+}

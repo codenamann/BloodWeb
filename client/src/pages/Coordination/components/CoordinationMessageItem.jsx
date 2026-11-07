@@ -8,6 +8,7 @@ export const CoordinationMessageItem = ({
   adminId,
   isClosed,
   handlePin,
+  onDelete,
   onReply,
   onScrollToMessage,
 }) => {
@@ -20,6 +21,7 @@ export const CoordinationMessageItem = ({
       isClosed={isClosed}
       onReply={onReply}
       onPin={handlePin}
+      onDelete={onDelete}
       onScrollToMessage={onScrollToMessage}
     />
   );

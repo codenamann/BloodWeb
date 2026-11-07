@@ -13,7 +13,7 @@ export const CoordinationSummaryBanners = ({ request, activeVolunteers }) => {
   return (
     <>
       {/* Emergency Requirement Summary Banner */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-red-500 to-[#d93829] text-white flex flex-wrap items-center justify-between gap-3 shadow-md">
+      <div className="col-span-full w-full p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-red-500 to-[#d93829] text-white flex flex-wrap items-center justify-between gap-3 shadow-md">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-black text-lg">
             {request.patientBloodGroup}

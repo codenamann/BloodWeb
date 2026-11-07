@@ -12,3 +12,4 @@ export { CoordinationReplyBanner } from './CoordinationReplyBanner';
 export { WatchDialPicker } from './WatchDialPicker';
 export { CoordinationDocumentCard } from './CoordinationDocumentCard';
 export { UnitsFulfilledBadge } from './UnitsFulfilledBadge';
+export { CoordinationSidebarDrawer } from './CoordinationSidebarDrawer';

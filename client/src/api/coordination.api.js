@@ -85,3 +85,13 @@ export async function closeCoordinationRoom(requestId) {
     const { data } = await client.patch(`/api/coordination/${requestId}/close`);
     return data.data?.room;
 }
+
+/**
+ * Admin / Sender: Delete a message in a coordination room
+ * @param {string} requestId 
+ * @param {string} messageId 
+ */
+export async function deleteCoordinationMessage(requestId, messageId) {
+    const { data } = await client.delete(`/api/coordination/${requestId}/messages/${messageId}`);
+    return data.data;
+}

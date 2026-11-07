@@ -13,7 +13,8 @@ import {
     getMessages,
     getRemainingCooldown,
     handleDonorQuickAction,
-    sendSystemMessage
+    sendSystemMessage,
+    deleteMessage
 } from "../../services/message.service.js";
 
 export const handleGetRoom = asyncHandler(async (req, res) => {
@@ -157,5 +158,19 @@ export const handleCloseRoom = asyncHandler(async (req, res) => {
         data: {
             room: closedRoom
         }
+    });
+});
+
+export const handleDeleteMessage = asyncHandler(async (req, res) => {
+    const requestId = req.params.requestId || req.params.id;
+    const { messageId } = req.params;
+
+    const room = await getRoomByRequestId(requestId, req.user.id);
+    const result = await deleteMessage(room._id, messageId, req.user.id);
+
+    res.status(200).json({
+        status: "success",
+        message: "Message deleted successfully",
+        data: result
     });
 });

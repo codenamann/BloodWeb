@@ -8,7 +8,8 @@ import {
     handleGetParticipants,
     handlePinMessage,
     handleUpdateCooldown,
-    handleCloseRoom
+    handleCloseRoom,
+    handleDeleteMessage
 } from "../controllers/coordination.controller.js";
 
 const router = Router();
@@ -21,6 +22,9 @@ router.get("/:requestId/messages", authenticate, handleGetMessages);
 
 // Send a user chat message
 router.post("/:requestId/messages", authenticate, handleSendMessage);
+
+// Delete a message (Admin or message sender)
+router.delete("/:requestId/messages/:messageId", authenticate, handleDeleteMessage);
 
 // Send a donor quick action (marked on way / arrived)
 router.post("/:requestId/quick-action", authenticate, handleQuickAction);

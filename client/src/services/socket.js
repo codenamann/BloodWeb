@@ -17,14 +17,15 @@ export function getSocket() {
     return null;
   }
 
-  if (socket && socket.connected) {
-    return socket;
-  }
-
-  // If socket exists but token changed, re-create
+  // If socket already exists, ensure it is authenticated with the latest token
   if (socket) {
-    socket.auth = { token };
-    socket.connect();
+    if (socket.auth?.token !== token) {
+      socket.auth = { token };
+      socket.disconnect();
+      socket.connect();
+    } else if (!socket.connected && !socket.active) {
+      socket.connect();
+    }
     return socket;
   }
 
@@ -35,12 +36,12 @@ export function getSocket() {
     transports: ['websocket', 'polling'],
     autoConnect: true,
     reconnection: true,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: 10,
     reconnectionDelay: 1000,
   });
 
   socket.on('connect', () => {
-    // Connected to server
+    // Socket connected
   });
 
   socket.on('connect_error', (err) => {
@@ -62,18 +63,26 @@ export function disconnectSocket() {
 
 /**
  * Join an authorized coordination room and register event handlers.
+ * Automatically re-subscribes upon socket reconnect.
  * Returns an unsubscribe cleanup function.
  */
 export function subscribeToCoordinationRoom(requestId, eventHandlers = {}) {
   const s = getSocket();
   if (!s || !requestId) return () => {};
 
-  // Request server to join room with authorization check
-  s.emit('subscribe_room', requestId, (res) => {
-    if (res && !res.success) {
-      console.warn(`[SOCKET ROOM] Failed to join room ${requestId}:`, res.message);
-    }
-  });
+  const joinRoom = () => {
+    s.emit('subscribe_room', requestId, (res) => {
+      if (res && !res.success) {
+        console.warn(`[SOCKET ROOM] Failed to join room ${requestId}:`, res.message);
+      }
+    });
+  };
+
+  // Join room immediately if already connected or queued
+  joinRoom();
+
+  // Re-join room automatically on every reconnect
+  s.on('connect', joinRoom);
 
   // Attach event handlers
   const cleanupFns = [];
@@ -86,6 +95,7 @@ export function subscribeToCoordinationRoom(requestId, eventHandlers = {}) {
 
   // Return unmount cleanup
   return () => {
+    s.off('connect', joinRoom);
     cleanupFns.forEach((fn) => fn());
     if (s.connected) {
       s.emit('unsubscribe_room', requestId);
@@ -95,13 +105,19 @@ export function subscribeToCoordinationRoom(requestId, eventHandlers = {}) {
 
 /**
  * Subscribe to public blood request events (fulfillment, status, volunteer counts).
+ * Automatically re-subscribes upon socket reconnect.
  * Returns an unsubscribe cleanup function.
  */
 export function subscribeToRequestUpdates(requestId, eventHandlers = {}) {
   const s = getSocket();
   if (!s || !requestId) return () => {};
 
-  s.emit('subscribe_request', requestId);
+  const joinRequest = () => {
+    s.emit('subscribe_request', requestId);
+  };
+
+  joinRequest();
+  s.on('connect', joinRequest);
 
   const cleanupFns = [];
   Object.entries(eventHandlers).forEach(([event, handler]) => {
@@ -112,6 +128,7 @@ export function subscribeToRequestUpdates(requestId, eventHandlers = {}) {
   });
 
   return () => {
+    s.off('connect', joinRequest);
     cleanupFns.forEach((fn) => fn());
     if (s.connected) {
       s.emit('unsubscribe_request', requestId);

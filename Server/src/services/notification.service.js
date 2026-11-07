@@ -5,6 +5,14 @@ import {
     donorAcceptedEmailTemplate,
     requesterAcceptedEmailTemplate
 } from "../templates/volunteerAccepted.template.js";
+import {
+    donorBackupEmailTemplate,
+    requesterBackupEmailTemplate,
+    donorBackupRemovedEmailTemplate,
+    requesterBackupRemovedEmailTemplate,
+    donorAcceptedRemovedEmailTemplate,
+    requesterAcceptedRemovedEmailTemplate,
+} from "../templates/volunteerStatus.template.js";
 import { sendEmail } from "../utils/email.js";
 import logger from "../utils/logger.js";
 import { emitToUser } from "../utils/socket.js";
@@ -239,6 +247,203 @@ export async function notifyVolunteerBackup(requestId, donorId, hospitalName = '
         body: `You are placed on standby as a backup donor for the request at ${hospitalName}. Thank you for your support!`,
         redirectUrl: `/requests/${requestId}`
     });
+}
+
+export async function notifyVolunteerBackupMutual({ request, donorUser, requesterUser }) {
+    if (!request || !donorUser || !requesterUser) return;
+    const requestId = request._id || request;
+    const hospitalName = request.hospitalId?.name || 'Hospital';
+    const patientBloodGroup = request.patientBloodGroup || donorUser.bloodGroup || 'compatible';
+    const coordinationUrl = `${FRONTEND_URL}/coordination/${requestId}`;
+
+    // 1. In-app to Donor
+    await createInAppNotification({
+        userId: donorUser._id,
+        type: 'INFORMATIONAL',
+        title: 'Assigned as Backup Donor',
+        body: `You are placed on standby as a backup donor for ${hospitalName} (${patientBloodGroup}). Stay ready!`,
+        redirectUrl: `/coordination/${requestId}`,
+        actions: [{ label: 'View Coordination', url: `/coordination/${requestId}` }],
+    });
+
+    // 2. Email to Donor
+    if (donorUser.email) {
+        try {
+            const html = donorBackupEmailTemplate({
+                donorName: donorUser.name,
+                hospitalName,
+                bloodGroup: patientBloodGroup,
+                coordinationUrl,
+            });
+            await sendEmail({
+                to: donorUser.email,
+                subject: `BloodWeb — Placed on Standby as Backup Donor (${hospitalName})`,
+                emailBody: html,
+            });
+        } catch (err) {
+            logger.warn(`[NOTIFY BACKUP WARN] Failed to send email to donor ${donorUser.email}: ${err.message}`);
+        }
+    }
+
+    // 3. In-app to Requester
+    await createInAppNotification({
+        userId: requesterUser._id,
+        type: 'INFORMATIONAL',
+        title: 'Volunteer Moved to Backup',
+        body: `${donorUser.name} has been placed on standby as a backup donor for ${hospitalName}.`,
+        redirectUrl: `/coordination/${requestId}`,
+        actions: [{ label: 'Manage Volunteers', url: `/coordination/${requestId}` }],
+    });
+
+    // 4. Email to Requester
+    if (requesterUser.email) {
+        try {
+            const html = requesterBackupEmailTemplate({
+                requesterName: requesterUser.name,
+                donorName: donorUser.name,
+                hospitalName,
+                bloodGroup: patientBloodGroup,
+                coordinationUrl,
+            });
+            await sendEmail({
+                to: requesterUser.email,
+                subject: `BloodWeb — Volunteer ${donorUser.name} Assigned to Backup`,
+                emailBody: html,
+            });
+        } catch (err) {
+            logger.warn(`[NOTIFY BACKUP WARN] Failed to send email to requester ${requesterUser.email}: ${err.message}`);
+        }
+    }
+}
+
+export async function notifyVolunteerBackupRemovedMutual({ request, donorUser, requesterUser }) {
+    if (!request || !donorUser || !requesterUser) return;
+    const requestId = request._id || request;
+    const hospitalName = request.hospitalId?.name || 'Hospital';
+    const patientBloodGroup = request.patientBloodGroup || donorUser.bloodGroup || 'compatible';
+    const coordinationUrl = `${FRONTEND_URL}/coordination/${requestId}`;
+
+    // 1. In-app to Donor
+    await createInAppNotification({
+        userId: donorUser._id,
+        type: 'INFORMATIONAL',
+        title: 'Backup Status Updated',
+        body: `You have been removed from backup status for ${hospitalName}. Your response is now pending.`,
+        redirectUrl: `/coordination/${requestId}`,
+    });
+
+    // 2. Email to Donor
+    if (donorUser.email) {
+        try {
+            const html = donorBackupRemovedEmailTemplate({
+                donorName: donorUser.name,
+                hospitalName,
+                bloodGroup: patientBloodGroup,
+                coordinationUrl,
+            });
+            await sendEmail({
+                to: donorUser.email,
+                subject: `BloodWeb — Status Updated: Backup Status Removed`,
+                emailBody: html,
+            });
+        } catch (err) {
+            logger.warn(`[NOTIFY REMOVE BACKUP WARN] Failed to send email to donor ${donorUser.email}: ${err.message}`);
+        }
+    }
+
+    // 3. In-app to Requester
+    await createInAppNotification({
+        userId: requesterUser._id,
+        type: 'INFORMATIONAL',
+        title: 'Volunteer Removed from Backup',
+        body: `${donorUser.name} has been removed from backup status and reverted to pending.`,
+        redirectUrl: `/coordination/${requestId}`,
+    });
+
+    // 4. Email to Requester
+    if (requesterUser.email) {
+        try {
+            const html = requesterBackupRemovedEmailTemplate({
+                requesterName: requesterUser.name,
+                donorName: donorUser.name,
+                hospitalName,
+                bloodGroup: patientBloodGroup,
+                coordinationUrl,
+            });
+            await sendEmail({
+                to: requesterUser.email,
+                subject: `BloodWeb — Volunteer ${donorUser.name} Removed from Backup`,
+                emailBody: html,
+            });
+        } catch (err) {
+            logger.warn(`[NOTIFY REMOVE BACKUP WARN] Failed to send email to requester ${requesterUser.email}: ${err.message}`);
+        }
+    }
+}
+
+export async function notifyVolunteerAcceptedRemovedMutual({ request, donorUser, requesterUser }) {
+    if (!request || !donorUser || !requesterUser) return;
+    const requestId = request._id || request;
+    const hospitalName = request.hospitalId?.name || 'Hospital';
+    const patientBloodGroup = request.patientBloodGroup || donorUser.bloodGroup || 'compatible';
+    const coordinationUrl = `${FRONTEND_URL}/coordination/${requestId}`;
+
+    // 1. In-app to Donor
+    await createInAppNotification({
+        userId: donorUser._id,
+        type: 'INFORMATIONAL',
+        title: 'Accepted Volunteer Status Removed',
+        body: `Your accepted status for the blood request at ${hospitalName} has been revoked by the requester and reverted to pending.`,
+        redirectUrl: `/coordination/${requestId}`,
+    });
+
+    // 2. Email to Donor
+    if (donorUser.email) {
+        try {
+            const html = donorAcceptedRemovedEmailTemplate({
+                donorName: donorUser.name,
+                hospitalName,
+                bloodGroup: patientBloodGroup,
+                coordinationUrl,
+            });
+            await sendEmail({
+                to: donorUser.email,
+                subject: `BloodWeb — Accepted Donation Status Revoked (${hospitalName})`,
+                emailBody: html,
+            });
+        } catch (err) {
+            logger.warn(`[NOTIFY REMOVE ACCEPTED WARN] Failed to send email to donor ${donorUser.email}: ${err.message}`);
+        }
+    }
+
+    // 3. In-app to Requester
+    await createInAppNotification({
+        userId: requesterUser._id,
+        type: 'INFORMATIONAL',
+        title: 'Volunteer Removed from Accepted',
+        body: `You removed ${donorUser.name} from accepted status. Their status has reverted to pending.`,
+        redirectUrl: `/coordination/${requestId}`,
+    });
+
+    // 4. Email to Requester
+    if (requesterUser.email) {
+        try {
+            const html = requesterAcceptedRemovedEmailTemplate({
+                requesterName: requesterUser.name,
+                donorName: donorUser.name,
+                hospitalName,
+                bloodGroup: patientBloodGroup,
+                coordinationUrl,
+            });
+            await sendEmail({
+                to: requesterUser.email,
+                subject: `BloodWeb — You Removed ${donorUser.name} from Accepted`,
+                emailBody: html,
+            });
+        } catch (err) {
+            logger.warn(`[NOTIFY REMOVE ACCEPTED WARN] Failed to send email to requester ${requesterUser.email}: ${err.message}`);
+        }
+    }
 }
 
 export async function notifyVolunteerWithdrawn(requestId, creatorId, donorName = 'A volunteer') {

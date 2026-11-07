@@ -5,32 +5,13 @@ import ChatStreamHeader from './ChatStreamHeader';
 import CoordinationReplyBanner from './CoordinationReplyBanner';
 
 export const CoordinationChatStream = ({
-  messages,
-  messagesEndRef,
-  pinnedText,
-  isRequester,
-  isClosed,
-  isVolunteer,
-  currentUser,
-  handlePin,
-  handleQuickAction,
-  isActionPending,
-  inputMessage,
-  setInputMessage,
-  handleSend,
-  cooldownRemaining,
-  isSending,
-  replyingTo,
-  setReplyingTo,
-  adminId,
-  request,
-  participants,
-  room,
-  cooldownEnabled,
-  handleToggleCooldown,
-  handleUpdateCooldown,
-  handleCloseRoom,
-  activeVolunteers,
+  messages, messagesEndRef, pinnedText, isRequester, isClosed, isVolunteer,
+  currentUser, handlePin, handleDeleteMessage, handleQuickAction, isActionPending,
+  inputMessage, setInputMessage, handleSend, cooldownRemaining, isSending,
+  replyingTo, setReplyingTo, adminId, request, participants, room,
+  cooldownEnabled, handleToggleCooldown, handleUpdateCooldown, handleCloseRoom,
+  activeVolunteers, isFullscreen = false, onToggleFullscreen,
+  isSidebarOpen = false, onToggleSidebar,
 }) => {
   const inputRef = useRef(null);
 
@@ -45,15 +26,19 @@ export const CoordinationChatStream = ({
     const el = document.getElementById(`msg-${messageId}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('ring-2', 'ring-[#c62828]', 'bg-red-50/80');
-      setTimeout(() => {
-        el.classList.remove('ring-2', 'ring-[#c62828]', 'bg-red-50/80');
-      }, 1500);
+      el.classList.add('bg-red-200/80');
+      setTimeout(() => el.classList.remove('bg-red-200/80'), 1500);
     }
   };
 
   return (
-    <div className="lg:col-span-2 flex flex-col h-[650px] clay-card bg-white/95 shadow-sm overflow-hidden">
+    <div
+      className={`flex flex-col clay-card bg-white/95 shadow-sm overflow-hidden transition-all duration-300 ${
+        isFullscreen
+          ? 'h-full w-full rounded-none border-0'
+          : 'lg:col-span-2 h-[650px]'
+      }`}
+    >
       {/* Integrated Chat Window Header */}
       <ChatStreamHeader
         request={request}
@@ -66,35 +51,50 @@ export const CoordinationChatStream = ({
         handleUpdateCooldown={handleUpdateCooldown}
         handleCloseRoom={handleCloseRoom}
         activeVolunteers={activeVolunteers}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={onToggleFullscreen}
+        isSidebarOpen={isSidebarOpen}
+        onToggleSidebar={onToggleSidebar}
       />
 
-      {/* Pinned Message Strip */}
-      {pinnedText && (
-        <div className="p-3 bg-amber-50/90 border-b border-amber-200/60 flex items-start justify-between gap-2.5 text-xs text-amber-900 shrink-0">
-          <div className="flex items-start gap-2.5 flex-1 min-w-0">
-            <Pin className="w-4 h-4 text-[#d93829] shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <span className="font-extrabold uppercase tracking-wider text-[10px] text-[#d93829] block">
-                Pinned Instructions
-              </span>
-              <span className="font-semibold">{pinnedText}</span>
+      {/* Pinned Message Strip with Smooth Collapse/Expand Transition */}
+      <div
+        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out shrink-0 ${
+          pinnedText
+            ? 'grid-rows-[1fr] opacity-100'
+            : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="overflow-hidden border-b border-amber-200/60">
+          <div className="p-3 bg-amber-50/90 flex items-start justify-between gap-2.5 text-xs text-amber-900">
+            <div className="flex items-start gap-2.5 flex-1 min-w-0">
+              <Pin className="w-4 h-4 text-[#d93829] shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <span className="font-extrabold uppercase tracking-wider text-[10px] text-[#d93829] block">
+                  Pinned Instructions
+                </span>
+                <span className="font-semibold">{pinnedText}</span>
+              </div>
             </div>
+            {isRequester && !isClosed && (
+              <button
+                type="button"
+                onClick={() => handlePin(null)}
+                title="Unpin message"
+                className="text-[10px] font-bold text-amber-800 hover:text-red-700 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded cursor-pointer shrink-0 transition-colors"
+              >
+                Unpin
+              </button>
+            )}
           </div>
-          {isRequester && !isClosed && (
-            <button
-              type="button"
-              onClick={() => handlePin(null)}
-              title="Unpin message"
-              className="text-[10px] font-bold text-amber-800 hover:text-red-700 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded cursor-pointer shrink-0"
-            >
-              Unpin
-            </button>
-          )}
         </div>
-      )}
+      </div>
 
       {/* Messages Scroll Area */}
-      <div style={{ scrollbarGutter: 'stable' }} className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-1.5 custom-scrollbar-2px">
+      <div
+        style={{ scrollbarGutter: 'stable' }}
+        className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-1.5 custom-scrollbar-2px"
+      >
         {messages.length === 0 ? (
           <div className="py-16 text-center text-xs text-stone-400 font-medium">
             Coordination room opened. Say hello or coordinate arrival.
@@ -102,13 +102,14 @@ export const CoordinationChatStream = ({
         ) : (
           messages.map((msg) => (
             <CoordinationMessageItem
-              key={msg._id}
+              key={msg._clientKey || msg._id || msg.id}
               msg={msg}
               currentUser={currentUser}
               isRequester={isRequester}
               adminId={adminId}
               isClosed={isClosed}
               handlePin={handlePin}
+              onDelete={handleDeleteMessage}
               onReply={handleReply}
               onScrollToMessage={handleScrollToMessage}
             />

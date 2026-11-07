@@ -19,6 +19,9 @@ import {
     notifyVolunteerAccepted,
     notifyVolunteerAcceptedMutual,
     notifyVolunteerBackup,
+    notifyVolunteerBackupMutual,
+    notifyVolunteerBackupRemovedMutual,
+    notifyVolunteerAcceptedRemovedMutual,
     notifyVolunteerWithdrawn
 } from "./notification.service.js";
 
@@ -309,7 +312,39 @@ export async function updateVolunteerStatus(responseId, requestorId, newStatus) 
                     `${donorUser?.name || 'A volunteer'} has been placed on standby as backup.`
                 );
             }
-            await notifyVolunteerBackup(volunteerResponse.requestId, volunteerResponse.donorId, hospitalName);
+            await notifyVolunteerBackupMutual({
+                request,
+                donorUser,
+                requesterUser
+            });
+        } else if (newStatus === 'PENDING') {
+            if (prevStatus === 'BACKUP') {
+                if (room) {
+                    await sendSystemMessage(
+                        room._id,
+                        'VOLUNTEER_BACKUP_REMOVED',
+                        `${donorUser?.name || 'A volunteer'} was removed from the backup list.`
+                    );
+                }
+                await notifyVolunteerBackupRemovedMutual({
+                    request,
+                    donorUser,
+                    requesterUser
+                });
+            } else if (prevStatus === 'ACCEPTED') {
+                if (room) {
+                    await sendSystemMessage(
+                        room._id,
+                        'VOLUNTEER_ACCEPTED_REMOVED',
+                        `${donorUser?.name || 'A volunteer'} was removed from accepted status.`
+                    );
+                }
+                await notifyVolunteerAcceptedRemovedMutual({
+                    request,
+                    donorUser,
+                    requesterUser
+                });
+            }
         }
     } catch (sideEffectErr) {
         logger.warn(`Failed during volunteer status side effects: ${sideEffectErr.message}`);

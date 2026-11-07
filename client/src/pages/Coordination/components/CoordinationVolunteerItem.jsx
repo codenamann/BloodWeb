@@ -129,29 +129,53 @@ export const CoordinationVolunteerItem = ({
               )}
 
               {isAccepted && (
-                <button
-                  type="button"
-                  disabled={updatingVolunteerId === volunteer._id}
-                  onClick={() =>
-                    handleVolunteerStatusUpdate(volunteer._id, 'BACKUP')
-                  }
-                  className="w-full py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 border border-stone-200 text-[11px] font-bold cursor-pointer disabled:opacity-50 transition-colors text-center"
-                >
-                  Move to Backup
-                </button>
+                <>
+                  <button
+                    type="button"
+                    disabled={updatingVolunteerId === volunteer._id}
+                    onClick={() =>
+                      handleVolunteerStatusUpdate(volunteer._id, 'BACKUP')
+                    }
+                    className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 border border-stone-200 text-[11px] font-bold cursor-pointer disabled:opacity-50 transition-colors text-center"
+                  >
+                    Move to Backup
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingVolunteerId === volunteer._id}
+                    onClick={() =>
+                      handleVolunteerStatusUpdate(volunteer._id, 'PENDING')
+                    }
+                    className="flex-1 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-[11px] font-bold cursor-pointer disabled:opacity-50 transition-colors text-center"
+                  >
+                    Remove
+                  </button>
+                </>
               )}
 
               {isBackup && (
-                <button
-                  type="button"
-                  disabled={updatingVolunteerId === volunteer._id}
-                  onClick={() =>
-                    handleVolunteerStatusUpdate(volunteer._id, 'ACCEPTED')
-                  }
-                  className="w-full py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-black cursor-pointer disabled:opacity-50 transition-colors text-center"
-                >
-                  Promote to Accepted
-                </button>
+                <>
+                  <button
+                    type="button"
+                    disabled={updatingVolunteerId === volunteer._id}
+                    onClick={() =>
+                      handleVolunteerStatusUpdate(volunteer._id, 'ACCEPTED')
+                    }
+                    className="flex-1 py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-black cursor-pointer disabled:opacity-50 transition-colors text-center"
+                  >
+                    Promote
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingVolunteerId === volunteer._id}
+                    onClick={() =>
+                      handleVolunteerStatusUpdate(volunteer._id, 'PENDING')
+                    }
+                    className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 border border-stone-200 text-[11px] font-bold cursor-pointer disabled:opacity-50 transition-colors text-center"
+                  >
+                    Remove
+                  </button>
+                </>
               )}
             </div>
           </div>

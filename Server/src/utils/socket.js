@@ -118,6 +118,7 @@ export function emitToRoom(requestId, event, payload) {
     if (!io) return;
     const target = requestId?.toString();
     if (target) {
+        logger.info(`[SOCKET EMIT] ${event} to room:${target}`);
         io.to(`room:${target}`).emit(event, payload);
     }
 }
@@ -129,6 +130,7 @@ export function emitToRequest(requestId, event, payload) {
     if (!io) return;
     const target = requestId?.toString();
     if (target) {
+        logger.info(`[SOCKET EMIT] ${event} to request:${target}`);
         io.to(`request:${target}`).emit(event, payload);
     }
 }

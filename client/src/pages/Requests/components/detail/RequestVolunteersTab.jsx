@@ -120,6 +120,24 @@ export const RequestVolunteersTab = ({
                           Set as Backup
                         </button>
                       )}
+                      {resp.status === 'ACCEPTED' && (
+                        <button
+                          onClick={() => handleStatusChange(resp._id, 'PENDING')}
+                          disabled={actionLoading}
+                          className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold cursor-pointer transition-colors disabled:opacity-50"
+                        >
+                          Remove Accepted
+                        </button>
+                      )}
+                      {resp.status === 'BACKUP' && (
+                        <button
+                          onClick={() => handleStatusChange(resp._id, 'PENDING')}
+                          disabled={actionLoading}
+                          className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 text-xs font-bold cursor-pointer transition-colors disabled:opacity-50"
+                        >
+                          Remove Backup
+                        </button>
+                      )}
                     </>
                   )}
 

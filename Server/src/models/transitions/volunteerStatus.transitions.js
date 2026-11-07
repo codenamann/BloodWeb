@@ -3,8 +3,8 @@ import { VOLUNTEER_STATUSES } from "../VolunteerResponse.model.js";
 // Every legal transition for a VolunteerResponse status.
 const ALLOWED_TRANSITIONS = {
     PENDING: ['ACCEPTED', 'BACKUP', 'WITHDRAWN'],
-    ACCEPTED: ['BACKUP', 'WITHDRAWN'],
-    BACKUP: ['ACCEPTED', 'WITHDRAWN'],
+    ACCEPTED: ['BACKUP', 'PENDING', 'WITHDRAWN'],
+    BACKUP: ['ACCEPTED', 'PENDING', 'WITHDRAWN'],
     WITHDRAWN: ['PENDING'],
 }
 
