@@ -2,28 +2,31 @@ import mongoose from "mongoose";
 import env from "./env.js";
 import logger from "../utils/logger.js";
 
-let retryTimer;
+let connectionPromise = null;
 
 export async function connectDB() {
-    const isConnected = mongoose.connection.readyState === 1;
-
-    if (isConnected) {
-        logger.warn("connectDB is called but connection already exists - skipping");
-        return;
+    if (mongoose.connection.readyState === 1) {
+        return mongoose.connection;
     }
 
-    try {
-        const connection = await mongoose.connect(env.db.uri, {
-            serverSelectionTimeoutMS: 5000, // fail fast if DB is unreachable at startup
-            socketTimeoutMS: 45000, // close sockets after 45s of inactivity
-        })
+    if (connectionPromise) {
+        return connectionPromise;
+    }
 
-        logger.info(`MongoDB connected: ${connection.connection.host}`);
-    } catch (error) {
+    connectionPromise = mongoose.connect(env.db.uri, {
+        serverSelectionTimeoutMS: 5000, // fail fast if DB is unreachable
+        socketTimeoutMS: 45000, // close sockets after 45s of inactivity
+    }).then((conn) => {
+        logger.info(`MongoDB connected: ${conn.connection.host}`);
+        connectionPromise = null;
+        return conn;
+    }).catch((error) => {
+        connectionPromise = null;
         logger.error(`MongoDB connection failed: ${error.message}`);
-        logger.warn(`MongoDB unavailable. Retrying connection in 5 seconds...`);
-        retryTimer = setTimeout(connectDB, 5000);
-    }
+        throw error;
+    });
+
+    return connectionPromise;
 }
 
 export function getConnectionStatus() {
@@ -36,10 +39,7 @@ export function getConnectionStatus() {
 
 // Graceful shutdown - called by server.js on SIGTERM/SIGINT
 export async function disconnectDB() {
-    if (retryTimer) {
-        clearTimeout(retryTimer);
-        retryTimer = null;
-    }
+    connectionPromise = null;
     if (mongoose.connection.readyState !== 1) return;
 
     await mongoose.connection.close();

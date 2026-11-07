@@ -5,6 +5,9 @@ export default function rateLimiter({ windowMs = env.rateLimit.windowMs, limit =
     return rateLimit({
         windowMs,
         limit,
+        standardHeaders: true,
+        legacyHeaders: false,
+        validate: { xForwardedForHeader: false, default: true },
         message: 'Too many requests, please try again later',
         handler: (req, res, next, options) => {
             res.status(options.statusCode).json({

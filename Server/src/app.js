@@ -2,6 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import env from './config/env.js';
+import { connectDB } from './config/db.js';
 import { getStatus } from './api/controllers/status.controller.js';
 import errorHandler from './middleware/errorHandler.js';
 import authRoutes from './api/routes/auth.routes.js';
@@ -13,6 +14,19 @@ import coordinationRoutes from './api/routes/coordination.routes.js';
 import notificationRoutes from './api/routes/notification.routes.js';
 
 const app = express();
+
+// Trust reverse proxy (Vercel, Render, Cloudflare, etc.)
+app.set('trust proxy', 1);
+
+// Ensure DB connection is established for serverless / hosted invocations
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (err) {
+        next(err);
+    }
+});
 
 // Security Middleware with custom CSP to permit status page styling & fonts
 app.use(
