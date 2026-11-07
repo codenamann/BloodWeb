@@ -10,11 +10,19 @@ const server = http.createServer(app);
 
 initIO(server);
 
-await connectDB();
+// For local / standalone server execution
+if (!process.env.VERCEL) {
+    await connectDB();
 
-server.listen(PORT, () => {
-    logger.info(`Server is running on port ${PORT}`);
-})
+    server.listen(PORT, () => {
+        logger.info(`Server is running on port ${PORT}`);
+    });
+} else {
+    // When running inside Vercel Serverless, initialize DB connection on cold start
+    connectDB().catch((err) => {
+        logger.error(`Cold-start MongoDB connection error: ${err.message}`);
+    });
+}
 
 const shutdown = async (signal) => {
     logger.info(`${signal} received, shutting down gracefully...`);
@@ -46,3 +54,5 @@ server.on('error', (error) => {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+
+export default server;
