@@ -158,6 +158,33 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
     return cleanup;
   }, [requestId]);
 
+  // Smart sync interval (every 3s) ensuring real-time multi-user consistency across serverless instances
+  useEffect(() => {
+    if (!requestId || roomStatus === 'CLOSED') return;
+
+    const syncInterval = setInterval(async () => {
+      try {
+        const msgData = await getCoordinationMessages(requestId);
+        if (msgData?.messages && Array.isArray(msgData.messages)) {
+          setMessages((prev) => {
+            let next = prev;
+            for (const newMsg of msgData.messages) {
+              next = safeAppendMessage(next, newMsg);
+            }
+            return next;
+          });
+        }
+        if (msgData?.roomStatus && msgData.roomStatus !== roomStatus) {
+          setRoomStatus(msgData.roomStatus);
+        }
+      } catch (err) {
+        // Silent catch for background poll
+      }
+    }, 3000);
+
+    return () => clearInterval(syncInterval);
+  }, [requestId, roomStatus]);
+
   const handleVolunteerStatusUpdate = async (responseId, newStatus) => {
     try {
       setUpdatingVolunteerId(responseId);

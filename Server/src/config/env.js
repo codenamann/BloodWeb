@@ -93,6 +93,10 @@ const env = {
             apiKey: optional('CLOUDINARY_API_KEY', ''),
             apiSecret: optional('CLOUDINARY_API_SECRET', ''),
         }
+    },
+
+    redis: {
+        url: optional('REDIS_URL', null),
     }
 };
 
