@@ -166,12 +166,28 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
       try {
         const msgData = await getCoordinationMessages(requestId);
         if (msgData?.messages && Array.isArray(msgData.messages)) {
+          const freshMessages = msgData.messages;
+          const freshIds = new Set(freshMessages.map((m) => (m._id || m.id)?.toString()));
+
           setMessages((prev) => {
-            let next = prev;
-            for (const newMsg of msgData.messages) {
-              next = safeAppendMessage(next, newMsg);
+            // Check if any deleted messages exist in current state
+            const hasDeleted = prev.some((m) => !m.isOptimistic && !freshIds.has((m._id || m.id)?.toString()));
+            
+            // Check if any new server messages arrived
+            const prevIds = new Set(prev.map((m) => (m._id || m.id)?.toString()));
+            const hasNew = freshMessages.some((m) => !prevIds.has((m._id || m.id)?.toString()));
+
+            // Keep optimistic in-flight messages that haven't been acknowledged yet
+            const pendingOptimistic = prev.filter(
+              (m) => m.isOptimistic && !freshMessages.some((f) => (f.text || f.content) === (m.text || m.content))
+            );
+
+            if (!hasDeleted && !hasNew && pendingOptimistic.length === 0) {
+              return prev; // Nothing changed, skip re-render
             }
-            return next;
+
+            // Sync with fresh server truth while preserving in-flight optimistic sends
+            return [...freshMessages, ...pendingOptimistic];
           });
         }
         if (msgData?.roomStatus && msgData.roomStatus !== roomStatus) {
