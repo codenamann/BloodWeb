@@ -158,49 +158,6 @@ export const useCoordinationRoomPage = (requestId, currentUser) => {
     return cleanup;
   }, [requestId]);
 
-  // Smart sync interval (every 3s) ensuring real-time multi-user consistency across serverless instances
-  useEffect(() => {
-    if (!requestId || roomStatus === 'CLOSED') return;
-
-    const syncInterval = setInterval(async () => {
-      try {
-        const msgData = await getCoordinationMessages(requestId);
-        if (msgData?.messages && Array.isArray(msgData.messages)) {
-          const freshMessages = msgData.messages;
-          const freshIds = new Set(freshMessages.map((m) => (m._id || m.id)?.toString()));
-
-          setMessages((prev) => {
-            // Check if any deleted messages exist in current state
-            const hasDeleted = prev.some((m) => !m.isOptimistic && !freshIds.has((m._id || m.id)?.toString()));
-            
-            // Check if any new server messages arrived
-            const prevIds = new Set(prev.map((m) => (m._id || m.id)?.toString()));
-            const hasNew = freshMessages.some((m) => !prevIds.has((m._id || m.id)?.toString()));
-
-            // Keep optimistic in-flight messages that haven't been acknowledged yet
-            const pendingOptimistic = prev.filter(
-              (m) => m.isOptimistic && !freshMessages.some((f) => (f.text || f.content) === (m.text || m.content))
-            );
-
-            if (!hasDeleted && !hasNew && pendingOptimistic.length === 0) {
-              return prev; // Nothing changed, skip re-render
-            }
-
-            // Sync with fresh server truth while preserving in-flight optimistic sends
-            return [...freshMessages, ...pendingOptimistic];
-          });
-        }
-        if (msgData?.roomStatus && msgData.roomStatus !== roomStatus) {
-          setRoomStatus(msgData.roomStatus);
-        }
-      } catch (err) {
-        // Silent catch for background poll
-      }
-    }, 3000);
-
-    return () => clearInterval(syncInterval);
-  }, [requestId, roomStatus]);
-
   const handleVolunteerStatusUpdate = async (responseId, newStatus) => {
     try {
       setUpdatingVolunteerId(responseId);

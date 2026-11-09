@@ -1,6 +1,4 @@
 import { Server } from 'socket.io';
-import { createAdapter } from '@socket.io/redis-adapter';
-import Redis from 'ioredis';
 import jwt from 'jsonwebtoken';
 import env from '../config/env.js';
 import logger from './logger.js';
@@ -15,34 +13,6 @@ export function initIO(httpServer) {
             credentials: true,
         },
     });
-
-    // Attach Redis Adapter for multi-instance / serverless fan-out if REDIS_URL is provided
-    if (env.redis?.url) {
-        try {
-            const pubClient = new Redis(env.redis.url, {
-                maxRetriesPerRequest: null,
-                enableReadyCheck: false,
-                lazyConnect: true,
-            });
-            const subClient = pubClient.duplicate();
-
-            pubClient.on('error', (err) => {
-                logger.error(`[SOCKET REDIS PUB ERROR] ${err.message}`);
-            });
-            subClient.on('error', (err) => {
-                logger.error(`[SOCKET REDIS SUB ERROR] ${err.message}`);
-            });
-
-            Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
-                io.adapter(createAdapter(pubClient, subClient));
-                logger.info('[SOCKET REDIS] Redis Pub/Sub adapter connected successfully');
-            }).catch((err) => {
-                logger.error(`[SOCKET REDIS INIT FAILED] ${err.message}`);
-            });
-        } catch (err) {
-            logger.error(`[SOCKET REDIS SETUP ERROR] ${err.message}`);
-        }
-    }
 
     // Socket authentication middleware
     io.use((socket, next) => {

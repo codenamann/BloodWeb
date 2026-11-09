@@ -33,10 +33,10 @@ export function getSocket() {
 
   socket = io(serverUrl, {
     auth: { token },
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     autoConnect: true,
     reconnection: true,
-    reconnectionAttempts: Infinity,
+    reconnectionAttempts: 10,
     reconnectionDelay: 1000,
   });
 
